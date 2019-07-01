@@ -1,0 +1,126 @@
+{#
+/**
+ * Xero plugin for Craft CMS 3.x
+ *
+ * Xero Settings.twig
+ *
+ * @author    Myles Derham
+ * @copyright Copyright (c) 2019 Myles Derham
+ * @link      https://www.mylesderham.dev/
+ * @package   Xero
+ */
+#}
+
+{% import "_includes/forms" as forms %}
+
+{% block blockContent %}
+
+{% if connection %}
+
+    <h2>Status</h2>
+    {% if connection.code == 200 %}
+        <p>Connected successfully to <strong>{{connection.organisation}}</strong></p>
+    {% elseif connection.message|length %}
+        <p>{{connection.message}}</p>
+    {% else %}
+        <p>Unknown error, please ensure all details are correct.</p>
+    {% endif %}
+    <hr />
+
+    {% if connection.code == 200 %}
+    
+        {{ forms.selectField({
+            label: "Sales Revenue"|t('xero'),
+            id: 'accountSales',
+            name: 'accountSales',
+            instructions: 'Sales revenue maps to this account',
+            options: connection.allAccounts,
+            required: true,
+            value: settings.accountSales,
+        }) }}
+
+        {{ forms.selectField({
+            label: "Accounts Receivable"|t('xero'),
+            id: 'accountReceivable',
+            name: 'accountReceivable',
+            instructions: 'Successfully paid orders are mapped to this account',
+            options: connection.allAccounts,
+            required: true,
+            value: settings.accountReceivable,
+        }) }}
+
+        {{ forms.selectField({
+            label: "Shipping & Delivery"|t('xero'),
+            id: 'accountShipping',
+            name: 'accountShipping',
+            instructions: 'Shipping costs map to this account',
+            options: connection.allAccounts,
+            required: true,
+            value: settings.accountShipping,
+        }) }}
+
+        {# COMING SOON
+        {{ forms.selectField({
+            label: "Discounts (coupons)"|t('xero'),
+            id: 'accountDiscounts',
+            name: 'accountDiscounts',
+            instructions: 'Discounts maps to this account',
+            options: connection.allAccounts,
+            value: settings.accountDiscounts,
+        }) }} #}
+
+        {{ forms.lightswitchField({
+            label: 'Update Xero inventory?',
+            instructions: 'Using product SKUs as the Xero Item Code, inventory levels in Xero will be updated.',
+            id: 'updateInventory',
+            name: 'updateInventory',
+            on: settings.updateInventory,
+        }) }}
+    
+    {% endif %}
+
+{% endif %}
+
+<div style="padding: 20px; background-color: #e7eef3; border-radius: 6px;">
+    <h2>Xero Connection</h2>
+    {{ forms.textField({
+        label: "Callback Url",
+        name: 'callbackUrl',
+        value: settings.callbackUrl,
+        placeholder: 'website.com',
+        required: true,
+        instructions: 'Enter only the domain name and not a full url',
+        errors: settings.getErrors('callbackUrl')
+    }) }}
+
+    {{ forms.textField({
+        label: "Consumer Key",
+        name: 'consumerKey',
+        value: settings.consumerKey,
+        placeholder: '',
+        instructions: '',
+        required: true,
+        errors: settings.getErrors('consumerKey')
+    }) }}
+
+    {{ forms.textField({
+        label: "Consumer Secret",
+        name: 'consumerSecret',
+        value: settings.consumerSecret,
+        placeholder: '',
+        instructions: '',
+        required: true,
+        errors: settings.getErrors('consumerSecret')
+    }) }}
+
+    {{ forms.textField({
+        label: "Private Key Path",
+        name: 'privateKeyPath',
+        value: settings.privateKeyPath,
+        placeholder: 'certificates/privatekey.pem',
+        instructions: 'Relative to the Craft base path',
+        required: true,
+        errors: settings.getErrors('privateKeyPath')
+    }) }}
+</div>
+{% endblock %}

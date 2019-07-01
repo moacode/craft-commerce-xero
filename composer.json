@@ -1,0 +1,44 @@
+{
+    "name": "mediabeastnz/craft-commerce-xero",
+    "description": "",
+    "type": "craft-plugin",
+    "version": "1.0.0",
+    "keywords": [
+        "craft",
+        "cms",
+        "craftcms",
+        "craft-plugin"
+    ],
+    "license": "proprietary",
+    "authors": [
+        {
+            "name": "Myles Derham",
+            "homepage": "https://www.mylesderham.dev/"
+        }
+    ],
+    "require": {
+        "craftcms/cms": "^3.1.0",
+        "calcinai/xero-php": "^v1.8.6"
+    },
+    "autoload": {
+        "psr-4": {
+          "mediabeastnz\\xero\\": "src/"
+        }
+    },
+    "support": {
+      "docs": "https://github.com/mediabeastnz/craft-commerce-xero/blob/master/README.md",
+      "issues": "https://github.com/mediabeastnz/craft-commerce-xero/issues"
+    },
+    "extra": {
+        "name": "Xero",
+        "handle": "xero",
+        "hasCpSettings": true,
+        "hasCpSection": false,
+        "changelogUrl": "https://raw.githubusercontent.com/mediabeastnz/craft-commerce-xero/master/CHANGELOG.md",
+        "components": {
+            "XeroConnectionService": "mediabeastnz\\xero\\services\\XeroConnectionService",
+            "XeroAPIService": "mediabeastnz\\xero\\services\\XeroAPIService"
+        },
+        "class": "mediabeastnz\\xero\\Xero"
+    }
+}
