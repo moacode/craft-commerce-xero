@@ -59,15 +59,32 @@
             value: settings.accountShipping,
         }) }}
 
-        {# COMING SOON
         {{ forms.selectField({
-            label: "Discounts (coupons)"|t('xero'),
+            label: "Rounding"|t('xero'),
+            id: 'accountRounding',
+            name: 'accountRounding',
+            instructions: 'Rounding adjustments map to this account',
+            options: connection.allAccounts,
+            required: true,
+            value: settings.accountRounding,
+        }) }}
+
+        {# {{ forms.selectField({
+            label: "Discounts"|t('xero'),
             id: 'accountDiscounts',
             name: 'accountDiscounts',
-            instructions: 'Discounts maps to this account',
+            instructions: 'Discount totals map to this account',
             options: connection.allAccounts,
             value: settings.accountDiscounts,
         }) }} #}
+
+        {{ forms.lightswitchField({
+            label: 'Create Payments?',
+            instructions: 'If enabled, orders marked as paid will have a Payment sent to Xero.',
+            id: 'createPayments',
+            name: 'createPayments',
+            on: settings.createPayments,
+        }) }}
 
         {{ forms.lightswitchField({
             label: 'Update Xero inventory?',

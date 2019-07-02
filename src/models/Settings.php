@@ -65,9 +65,19 @@ class Settings extends Model
     public $accountReceivable;
 
     /**
+     * @var int
+     */
+    public $accountRounding;
+
+    /**
      * @var boolean
      */
     public $updateInventory;
+
+    /**
+     * @var boolean
+     */
+    public $createPayments;
     
 
     // Public Methods
@@ -91,7 +101,9 @@ class Settings extends Model
                 'privateKeyPath', 
                 'callbackUrl', 
                 'accountSales',
-                'accountShipping', 
+                'accountShipping',
+                'accountRounding',
+            //    'accountDiscounts', 
                 'accountReceivable',
             ], 'required']
         ];

@@ -14,6 +14,8 @@ use mediabeastnz\xero\services\XeroConnectionService;
 use mediabeastnz\xero\services\XeroAPIService;
 use mediabeastnz\xero\models\Settings;
 use mediabeastnz\xero\web\assets\SendToXeroAsset;
+use mediabeastnz\xero\behaviors\OrderBehavior;
+use mediabeastnz\xero\elementactions\OrdersAction;
 
 use Craft;
 use craft\base\Plugin;
@@ -21,7 +23,10 @@ use craft\services\Plugins;
 use craft\events\TemplateEvent;
 use craft\web\View;
 use craft\events\RegisterUrlRulesEvent;
+use craft\events\DefineBehaviorsEvent;
 use craft\web\UrlManager;
+use craft\events\RegisterElementActionsEvent;
+use craft\commerce\elements\Order;
 
 use yii\base\Event;
 
@@ -42,7 +47,6 @@ class Xero extends Plugin
      * @var Xero
      */
     public static $plugin;
-
 
 
     // Public Methods
@@ -72,6 +76,10 @@ class Xero extends Plugin
 
         Event::on(UrlManager::class, UrlManager::EVENT_REGISTER_CP_URL_RULES, function(RegisterUrlRulesEvent $event) {
             $event->rules['sendordertoxero'] = 'xero/base/send-order-to-xero';
+        });
+
+        Event::on(Order::class, Order::EVENT_REGISTER_ACTIONS, function(RegisterElementActionsEvent $event) {
+            $event->actions[] = OrdersAction::class;
         });
 
         Event::on(View::class, View::EVENT_BEFORE_RENDER_TEMPLATE, function (TemplateEvent $event) {
@@ -108,6 +116,11 @@ class Xero extends Plugin
             
         });
 
+    }
+
+    public function withDecimals($places = 4, $number)
+    {
+        return number_format((float)$number, $places, '.', '');
     }
 
     // Protected Methods

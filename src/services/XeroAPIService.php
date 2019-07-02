@@ -18,6 +18,8 @@ use XeroPHP\Remote\Exception\UnauthorizedException;
 use XeroPHP\Models\Accounting\Contact;
 use XeroPHP\Models\Accounting\Invoice;
 use XeroPHP\Models\Accounting\Invoice\LineItem;
+use XeroPHP\Models\Accounting\Payment;
+use XeroPHP\Models\Accounting\Account;
 
 use Craft;
 use craft\commerce\elements\Order;
@@ -32,6 +34,8 @@ class XeroAPIService extends Component
 {
 
     private $connection;
+
+    private $decimals = 2;
 
     // Public Methods
     // =========================================================================
@@ -73,6 +77,9 @@ class XeroAPIService extends Component
                 'curl' => array(
                     CURLOPT_CAINFO => CRAFT_BASE_PATH .'/xero/certificates/ca-bundle.crt',
                 ),
+                'xero' => [
+                    'unitdp' => 4
+                ]
             ];
 
             $connection = new PrivateApplication($config);
@@ -82,58 +89,118 @@ class XeroAPIService extends Component
         return false;
     }
 
-    public function findOrCreateContact()
-    {
-        $contact = $this->connection->load('Accounting\\Contact')->where("Name", '24 Locks')->first();
-        if (empty($contact) && !isset($contact)) {
-            $contact = new Contact($this->connection);
-            $contact->setName("PLato Creative")
-                    ->setFirstName("John")
-                    ->setLastName("Doe")
-                    ->setEmailAddress("john.doe@email.com");
-            try {
-                $contact->save();
-            } catch(Exception $e) {
-                $response = [
-                    'message' => $e->getMessage(),
-                    'code' => $e->getCode()
-                ];
 
-                Craft::error(
-                    $e->getMessage(),
-                    __METHOD__
-                );
+    public function findOrCreateContact(Order $order)
+    {
+        try {
+
+            // this can return either fullname or their username (email hopefully)
+            $user = $order->getUser();
+            $contact = $this->connection->load('Accounting\\Contact')->where('
+                Name=="' . $user->getName() . '" OR
+                EmailAddress=="' . $user->getName() . '"
+            ')->first();
+            if (empty($contact) && !isset($contact)) {
+                $contact = new Contact($this->connection);
+                $contact->setName($user->getName())
+                        ->setFirstName($user->firstName)
+                        ->setLastName($user->lastName)
+                        ->setEmailAddress($user->email);
+                    
+                // TODO: add hook (before_save_contact)
+                        
+                $contact->save();       
             }
+            return $contact;
+        } catch(Exception $e) {
+            $response = [
+                'message' => $e->getMessage(),
+                'code' => $e->getCode()
+            ];
+
+            Craft::error(
+                $e->getMessage(),
+                __METHOD__
+            );
         }
-        return $contact;
+        return false;
     }
 
 
     public function createInvoice(Contact $contact, Order $order)
     {
         $invoice = new Invoice($this->connection);
+
         // get line items
-        // get discounts
-        // get shipping
-        // get other
-
         foreach ($order->getLineItems() as $orderItem) {
+            // TODO: check for line item adjustments
             $lineItem = new LineItem($this->connection);
-            $lineItem->setAccountCode(200)
-                     ->setDescription($orderItem->snapshot['product']['title'])
-                     ->setQuantity($orderItem->qty)
-                     ->setUnitAmount($orderItem->salePrice);
+            $lineItem->setAccountCode(Xero::$plugin->getSettings()->accountSales);
+            $lineItem->setDescription($orderItem->snapshot['product']['title']);
+            $lineItem->setQuantity($orderItem->qty);
+            $lineItem->setUnitAmount(Xero::$plugin->withDecimals($this->decimals, $orderItem->total));
             $invoice->addLineItem($lineItem);
-        }
+        }        
 
-        $invoice->setStatus('DRAFT')
+        // get all adjustments (discounts,shipping etc)
+        $adjustments = $order->getOrderAdjustments();
+        foreach ($adjustments as $adjustment) {
+            // shipping adjustments
+            if ($adjustment->type == 'shipping') {
+                $lineItem = new LineItem($this->connection);
+                $lineItem->setAccountCode(Xero::$plugin->getSettings()->accountShipping);
+                $lineItem->setDescription($adjustment->name);
+                $lineItem->setQuantity(1);
+                $lineItem->setUnitAmount(Xero::$plugin->withDecimals($this->decimals, $adjustment->amount));
+                $invoice->addLineItem($lineItem);    
+            }
+        }
+                
+        // setup invoice
+        $invoice->setStatus('AUTHORISED')
                 ->setType('ACCREC')
                 ->setContact($contact)
-                ->setLineAmountType('Inclusive')
+                ->setLineAmountType("Exclusive") // TODO: this should be optional (Inclusive/Exclusive)
+                ->setCurrencyCode($order->getPaymentCurrency())
                 ->setInvoiceNumber($order->reference)
+                ->setSentToContact(true)
                 ->setDueDate(new \DateTime('NOW'));
+
+        // TODO: add hook (before_invoice_save)
+
         try {
+            // save the invoice
             $invoice->save();
+
+            // TODO:
+            // $order->xeroInvoiceId = $invoice->InvoiceID;
+            // $order->save();
+
+            // TODO: add hook (after_invoice_save)
+            
+            // Would $orderTotal ever be more than $invoice->Total?
+            // If so, what should happen with rounding?
+
+            $orderTotal = Xero::$plugin->withDecimals($this->decimals, $order->getTotalPrice());
+            if ($invoice->Total > $orderTotal) {
+                
+                // caclulate how much rounding to adjust
+                $roundingAdjustment = $orderTotal - $invoice->Total;
+                $roundingAdjustment = Xero::$plugin->withDecimals($this->decimals, $roundingAdjustment);
+                
+                // add rounding to invoice
+                $lineItem = new LineItem($this->connection);
+                $lineItem->setAccountCode(Xero::$plugin->getSettings()->accountRounding);
+                $lineItem->setDescription("Rounding adjustment: Order Total: $".$orderTotal);
+                $lineItem->setQuantity(1);
+                $lineItem->setUnitAmount($roundingAdjustment);
+                $invoice->addLineItem($lineItem);
+                
+                // update the invoice with new rounding adjustment
+                $invoice->save();
+                return $invoice;
+            }   
+
         } catch(Exception $e) {
             $response = [
                 'message' => $e->getMessage(),
@@ -146,6 +213,55 @@ class XeroAPIService extends Component
             );
         }
 
+        return false;
+
+    }
+
+
+    public function createPayment(Invoice $invoice, Account $account, Order $order)
+    {
+        try {
+            // create the payment
+            $payment = new Payment($this->connection);
+            $payment->setInvoice($invoice)
+                    ->setAccount($account)
+                    ->setReference($order->getLastTransaction()->reference)
+                    ->setAmount(Xero::$plugin->withDecimals($this->decimals, $order->getTotalPaid()))
+                    ->setDate($order->datePaid);
+            $payment->save();
+            return $payment;
+        } catch(Exception $e) {
+            $response = [
+                'message' => $e->getMessage(),
+                'code' => $e->getCode()
+            ];
+
+            Craft::error(
+                $e->getMessage(),
+                __METHOD__
+            );
+        }
+        return false;
+    }
+
+
+    public function getAccountByCode($code)
+    {
+        try {
+            $account = $this->connection->load('Accounting\\Account')->where('Code=="' . $code . '"')->first();
+            return $account;
+        } catch(Exception $e) {
+            $response = [
+                'message' => $e->getMessage(),
+                'code' => $e->getCode()
+            ];
+
+            Craft::error(
+                $e->getMessage(),
+                __METHOD__
+            );
+        }
+        return false;
     }
 
 }

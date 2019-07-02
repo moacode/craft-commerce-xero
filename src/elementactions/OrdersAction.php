@@ -33,7 +33,7 @@ class OrdersAction extends ElementAction
     public function getTriggerHtml()
     {
         $type = Json::encode(static::class);
-        Craft::$app->getView()->registerJs($js);
+        // Craft::$app->getView()->registerJs($js);
     }
     
 }

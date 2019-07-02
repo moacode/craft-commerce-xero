@@ -31,16 +31,25 @@ class BaseController extends Controller
 
         $orderId = Craft::$app->request->getParam('orderId');
         if ($orderId) {
+            // grab the Order
             $order = Commerce::getInstance()->getOrders()->getOrderById($orderId);
             if ($order) {
-                   
-                $contact = Xero::$plugin->api->findOrCreateContact();
-                if($contact){
+                // find or create the Contact
+                $contact = Xero::$plugin->api->findOrCreateContact($order);
+                if ($contact){ 
+                    // create the Invoice
                     $invoice = Xero::$plugin->api->createInvoice($contact, $order);
-                    return "sent to xero";
+                    // only continue to payment if a payment has been made and payments are enabled
+                    if ($invoice && $order->isPaid && Xero::$plugin->getSettings()->createPayments) {
+                        // before we can make the payment we need to get the Account
+                        $account = Xero::$plugin->api->getAccountByCode(Xero::$plugin->getSettings()->accountReceivable);
+                        if ($account) {
+                            $payment = Xero::$plugin->api->createPayment($invoice, $account, $order);
+                        }
+                        return true;
+                    }
                 }
-
-                return "not connected";
+                return false;
             }
         }
     }
