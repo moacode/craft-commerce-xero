@@ -11,6 +11,7 @@ use mediabeastnz\xero\services\XeroAPIService;
 
 use Craft;
 use craft\queue\BaseJob;
+use craft\commerce\Plugin as Commerce;
 
 class SendToXeroJob extends BaseJob
 {
@@ -18,9 +19,9 @@ class SendToXeroJob extends BaseJob
     // =========================================================================
 
     /**
-     * @var array
+     * @var Int
      */
-    public $orders = [];
+    public $orderID;
 
 
     // Protected Methods
@@ -28,7 +29,7 @@ class SendToXeroJob extends BaseJob
 
     protected function defaultDescription()
     {
-        return Craft::t('xero', 'Send Orders to Xero');
+        return Craft::t('xero', 'Send Order to Xero');
     }
 
 
@@ -37,9 +38,10 @@ class SendToXeroJob extends BaseJob
 
     public function execute($queue)
     {
-        $totalSteps = count($this->orders);
+        $totalSteps = 1;
         for ($step = 0; $step < $totalSteps; $step++) { 
-            // run functions here
+            $order = Commerce::getInstance()->getOrders()->getOrderById($this->orderID);
+            Xero::$plugin->api->sendOrder($order);
             $this->setProgress($queue, $step / $totalSteps);
         }
     }

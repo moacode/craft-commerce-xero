@@ -16,6 +16,7 @@ use mediabeastnz\xero\models\Settings;
 use mediabeastnz\xero\web\assets\SendToXeroAsset;
 use mediabeastnz\xero\behaviors\OrderBehavior;
 use mediabeastnz\xero\elementactions\OrdersAction;
+use mediabeastnz\xero\jobs\SendToXeroJob;
 
 use Craft;
 use craft\base\Plugin;
@@ -26,6 +27,7 @@ use craft\events\RegisterUrlRulesEvent;
 use craft\events\DefineBehaviorsEvent;
 use craft\web\UrlManager;
 use craft\events\RegisterElementActionsEvent;
+use craft\commerce\Plugin as Commerce;
 use craft\commerce\elements\Order;
 
 use yii\base\Event;
@@ -78,9 +80,10 @@ class Xero extends Plugin
             $event->rules['sendordertoxero'] = 'xero/base/send-order-to-xero';
         });
 
-        Event::on(Order::class, Order::EVENT_REGISTER_ACTIONS, function(RegisterElementActionsEvent $event) {
-            $event->actions[] = OrdersAction::class;
-        });
+        // TODO:
+        // Event::on(Order::class, Order::EVENT_REGISTER_ACTIONS, function(RegisterElementActionsEvent $event) {
+        //     $event->actions[] = OrdersAction::class;
+        // });
 
         Event::on(View::class, View::EVENT_BEFORE_RENDER_TEMPLATE, function (TemplateEvent $event) {
             
@@ -94,18 +97,17 @@ class Xero extends Plugin
             // Only run on the entries edit template
             switch ($event->template) {
                 case 'commerce/orders/_edit':
-
-                     // only allow sending to Xero if:
-                    // - order is completed
-                    // - order isn't already in Xero
-                    if ( $event->variables['order']->isCompleted == 0 ) {
+                     
+                    if ( $event->variables['order']->isCompleted == 0) {
                         exit;
                     }
 
-                    $js = trim(
-                        'var someData = "test"'."\r\n".
-                        'var moreData = "test"'."\r\n"
-                    );
+                    if ($this->api->getInvoiceFromOrder($event->variables['order'])) {
+                        $js = trim('var sentToXero = true');
+                    } else {
+                        $js = trim('var sentToXero = false');
+                    }
+
                     if ($js) {
                         $view->registerJs($js, View::POS_END);
                     }
@@ -113,7 +115,14 @@ class Xero extends Plugin
 
                 break;
             }
-            
+        });
+
+        
+        // Send completed and paid orders of to Xero (30 second delay)
+        Event::on(Order::class, Order::EVENT_AFTER_ORDER_PAID, function(Event $e) {
+            Craft::$app->queue->delay(30)->push(new SendToXeroJob([
+                'orderID' => $e->sender->id
+            ]));
         });
 
     }

@@ -88,7 +88,7 @@
 
         {{ forms.lightswitchField({
             label: 'Update Xero inventory?',
-            instructions: 'Using product SKUs as the Xero Item Code, inventory levels in Xero will be updated.',
+            instructions: 'Using product SKUs as the Xero Item Code, inventory levels in Xero will be updated (if setup). CAUTION: if an item code deosn\'t exist it will throw an exception.',
             id: 'updateInventory',
             name: 'updateInventory',
             on: settings.updateInventory,

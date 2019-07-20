@@ -11,6 +11,8 @@
 namespace mediabeastnz\xero\services;
 
 use mediabeastnz\xero\Xero;
+use mediabeastnz\xero\records\InvoiceRecord;
+use mediabeastnz\xero\models\InvoiceModel;
 
 use XeroPHP\Application\PrivateApplication;
 use XeroPHP\Remote\Exception\BadRequestException;
@@ -42,8 +44,6 @@ class XeroAPIService extends Component
 
     public function init()
     {
-        // TODO: throw an error is this fails
-        // - this should prevent all requests (connection required)
         $this->connection = $this->getConnection();
     }
 
@@ -90,6 +90,30 @@ class XeroAPIService extends Component
     }
 
 
+    public function sendOrder(Order $order)
+    {
+        if ($order) {
+            // find or create the Contact
+            $contact = $this->findOrCreateContact($order);
+            if ($contact){ 
+                // create the Invoice
+                $invoice = $this->createInvoice($contact, $order);
+                // only continue to payment if a payment has been made and payments are enabled
+                if ($invoice && $order->isPaid && Xero::$plugin->getSettings()->createPayments) {
+                    // before we can make the payment we need to get the Account
+                    $account = $this->getAccountByCode(Xero::$plugin->getSettings()->accountReceivable);
+                    if ($account) {
+                        $payment = $this->createPayment($invoice, $account, $order);
+
+                    }
+                    return true;
+                }
+            }
+        }
+        return false;
+    } 
+
+
     public function findOrCreateContact(Order $order)
     {
         try {
@@ -130,17 +154,22 @@ class XeroAPIService extends Component
     public function createInvoice(Contact $contact, Order $order)
     {
         $invoice = new Invoice($this->connection);
-
         // get line items
         foreach ($order->getLineItems() as $orderItem) {
-            // TODO: check for line item adjustments
             $lineItem = new LineItem($this->connection);
             $lineItem->setAccountCode(Xero::$plugin->getSettings()->accountSales);
             $lineItem->setDescription($orderItem->snapshot['product']['title']);
             $lineItem->setQuantity($orderItem->qty);
             $lineItem->setUnitAmount(Xero::$plugin->withDecimals($this->decimals, $orderItem->total));
+            // TODO: check for line item adjustments
+
+            // check if product codes should be used and sent (inventory updates)
+            if (Xero::$plugin->getSettings()->updateInventory) {
+                $lineItem->setItemCode($orderItem->sku);
+            }
+
             $invoice->addLineItem($lineItem);
-        }        
+        }      
 
         // get all adjustments (discounts,shipping etc)
         $adjustments = $order->getOrderAdjustments();
@@ -170,17 +199,10 @@ class XeroAPIService extends Component
 
         try {
             // save the invoice
-            $invoice->save();
+            $invoice->save();            
 
-            // TODO:
-            // $order->xeroInvoiceId = $invoice->InvoiceID;
-            // $order->save();
-
-            // TODO: add hook (after_invoice_save)
-            
             // Would $orderTotal ever be more than $invoice->Total?
             // If so, what should happen with rounding?
-
             $orderTotal = Xero::$plugin->withDecimals($this->decimals, $order->getTotalPrice());
             if ($invoice->Total > $orderTotal) {
                 
@@ -198,8 +220,16 @@ class XeroAPIService extends Component
                 
                 // update the invoice with new rounding adjustment
                 $invoice->save();
-                return $invoice;
             }   
+
+            $invoiceRecord = new InvoiceRecord();
+            $invoiceRecord->orderId = $order->id;
+            $invoiceRecord->invoiceId = $invoice->InvoiceID;
+            $invoiceRecord->save();
+
+            // TODO: add hook (after_invoice_save)
+
+            return $invoice;
 
         } catch(Exception $e) {
             $response = [
@@ -260,6 +290,16 @@ class XeroAPIService extends Component
                 $e->getMessage(),
                 __METHOD__
             );
+        }
+        return false;
+    }
+
+
+    public function getInvoiceFromOrder(Order $order)
+    {
+        $invoice = InvoiceRecord::find()->where(['orderId' => $order->id])->one();
+        if ($invoice && isset($invoice->invoiceId)) {
+            return true;
         }
         return false;
     }
