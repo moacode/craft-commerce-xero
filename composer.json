@@ -2,12 +2,14 @@
     "name": "mediabeastnz/craft-commerce-xero",
     "description": "",
     "type": "craft-plugin",
-    "version": "1.0.0",
+    "version": "0.9.0",
     "keywords": [
         "craft",
         "cms",
         "craftcms",
-        "craft-plugin"
+        "craft-plugin",
+        "xero",
+        "invoice"
     ],
     "license": "proprietary",
     "authors": [
