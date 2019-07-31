@@ -160,7 +160,12 @@ class XeroAPIService extends Component
             $lineItem->setAccountCode(Xero::$plugin->getSettings()->accountSales);
             $lineItem->setDescription($orderItem->snapshot['product']['title']);
             $lineItem->setQuantity($orderItem->qty);
-            $lineItem->setUnitAmount(Xero::$plugin->withDecimals($this->decimals, $orderItem->total));
+            if ($orderItem->salePrice > 0) {
+                $lineItem->setUnitAmount(Xero::$plugin->withDecimals($this->decimals, $orderItem->salePrice));
+            } else {
+                $lineItem->setUnitAmount(Xero::$plugin->withDecimals($this->decimals, $orderItem->price));
+            }
+
             // TODO: check for line item adjustments
 
             // check if product codes should be used and sent (inventory updates)
