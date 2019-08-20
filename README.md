@@ -9,6 +9,8 @@ This plugin allows you to automatically send Commerce invoices into Xero includi
 
 You'll need to create a [private application](https://developer.xero.com) within Xero and then connect via OAuth using a consumer key, consumer secret and private (self signed) certificate.
 
+You'll also need a Certificate store which can be downloaded from this repo for ease of use. It's generated from Firefox's own Cert store and updated often. [see here](https://github.com/bagder/ca-bundle)
+
 Once connected the plugin allows you to map your Chart of Accounts (Account Codes) including:
 
 - sales revenue
@@ -72,7 +74,7 @@ As this plugin is still in active development now is a good time to suggest new 
 
 Either by the plugin store (search "Xero") or via composer.
 
-`"mediabeastnz/craft-commerce-xero": "^0.9.0"`
+`"mediabeastnz/craft-commerce-xero": "^0.9.2"`
 
 ## Requirements
 

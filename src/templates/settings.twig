@@ -139,5 +139,16 @@
         required: true,
         errors: settings.getErrors('privateKeyPath')
     }) }}
+
+    {{ forms.textField({
+        label: "CA Bundle Path",
+        name: 'caBundlePath',
+        value: settings.caBundlePath,
+        placeholder: 'certificates/ca-bundle.crt',
+        instructions: 'Relative to the Craft base path',
+        required: true,
+        errors: settings.getErrors('caBundlePath')
+    }) }}
+
 </div>
 {% endblock %}
