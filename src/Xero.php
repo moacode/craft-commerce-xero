@@ -98,20 +98,20 @@ class Xero extends Plugin
             switch ($event->template) {
                 case 'commerce/orders/_edit':
                      
-                    if ( $event->variables['order']->isCompleted == 0) {
-                        exit;
-                    }
+                    if ( $event->variables['order']->isCompleted) {
 
-                    if ($this->api->getInvoiceFromOrder($event->variables['order'])) {
-                        $js = trim('var sentToXero = true');
-                    } else {
-                        $js = trim('var sentToXero = false');
-                    }
+                        if ($this->api->getInvoiceFromOrder($event->variables['order'])) {
+                            $js = trim('var sentToXero = true');
+                        } else {
+                            $js = trim('var sentToXero = false');
+                        }
 
-                    if ($js) {
-                        $view->registerJs($js, View::POS_END);
+                        if ($js) {
+                            $view->registerJs($js, View::POS_END);
+                        }
+                        $view->registerAssetBundle(SendToXeroAsset::class);
+                        
                     }
-                    $view->registerAssetBundle(SendToXeroAsset::class);
 
                 break;
             }

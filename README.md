@@ -23,7 +23,6 @@ By default all fully paid orders will be pushed into the queue (you'll need to e
 If you need to send existing orders to Cero you can do so by viewing an order and you'll see a "Send to Xero" button which will instantly send the order off to Xero. This button also currently acts as a way to see if an order is already in Xero.
 
 ### What fields are sent to Xero
-
 Below is a list of fields that is sent to Xero. In future versions hooks/events will be avaialbe if you require more information to be sent.
 
 **Contact**
@@ -59,6 +58,10 @@ Below is a list of fields that is sent to Xero. In future versions hooks/events 
 ### Rounding
 Due to how different systems calculate rounding if for whatever reason the order total is different to what Xero calculates, an additional line item to account for rounding is added in Xero. Please ensure you have this account code selected under settings.
 
+### Multi environment settings
+If you require different settings per environment the plugin ships with an example config file `xero-config.php` which should be copied into your config folder and renamed to `xero.php`. Once this is in place you r can define all the plugins settings for each environment. 
+Note if this file exists all settings will then be read from this file instead of whats in Craft.
+
 > More detailed documentation to coming soon.
 
 ## Feature requests 🙏
@@ -70,12 +73,11 @@ As this plugin is still in active development now is a good time to suggest new 
 - Add multiple hooks/events so developers can further extend if required
 - Refunds support
 - Admin features like element actions, widgets and different syncing methods
-## Installation
 
+## Installation
 Either by the plugin store (search "Xero") or via composer.
 
-`"mediabeastnz/craft-commerce-xero": "^0.9.2"`
+`"mediabeastnz/craft-commerce-xero": "^0.9.3"`
 
 ## Requirements
-
 This plugin requires Craft CMS 3.1.0 or later and Craft Commerce 2.0 or later.

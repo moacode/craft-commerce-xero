@@ -167,7 +167,7 @@ class XeroAPIService extends Component
         foreach ($order->getLineItems() as $orderItem) {
             $lineItem = new LineItem($this->connection);
             $lineItem->setAccountCode(Xero::$plugin->getSettings()->accountSales);
-            $lineItem->setDescription($orderItem->snapshot['product']['title']);
+            $lineItem->setDescription($orderItem->description);
             $lineItem->setQuantity($orderItem->qty);
             if ($orderItem->salePrice > 0) {
                 $lineItem->setUnitAmount(Xero::$plugin->withDecimals($this->decimals, $orderItem->salePrice));
