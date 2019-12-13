@@ -36,11 +36,20 @@ class XeroConnectionService extends Component
         $consumerKey = Xero::$plugin->getSettings()->consumerKey;
         $consumerSecret = Xero::$plugin->getSettings()->consumerSecret;
         $privateKeyPath = Xero::$plugin->getSettings()->privateKeyPath;
+        $caBundlePath = Xero::$plugin->getSettings()->caBundlePath;
         $callbackUrl = Xero::$plugin->getSettings()->callbackUrl;
 
         // make sure consumer info is defined
-        if (isset($consumerKey) && isset($consumerSecret) && isset($privateKeyPath)) {
+        if (isset($consumerKey) && isset($consumerSecret) && isset($privateKeyPath) && isset($caBundlePath)) {
             
+            // check for ca bundle
+            if (!is_readable('file://'.CRAFT_BASE_PATH.'/'.$caBundlePath)) {
+                return [
+                    'message' => 'CA Bundle crt file can\'t be found.',
+                    'code' => 404
+                ];
+            }
+
             // check for private key
             if (!is_readable('file://'.CRAFT_BASE_PATH.'/'.$privateKeyPath)) {
                 return [
@@ -58,7 +67,7 @@ class XeroConnectionService extends Component
                     'rsa_private_key' => 'file://'.CRAFT_BASE_PATH.'/'.$privateKeyPath,
                 ],
                 'curl' => array(
-                    CURLOPT_CAINFO => CRAFT_BASE_PATH .'/xero/certificates/ca-bundle.crt',
+                    CURLOPT_CAINFO => CRAFT_BASE_PATH.'/'.$caBundlePath,
                 ),
             ];
 

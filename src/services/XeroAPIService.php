@@ -53,11 +53,20 @@ class XeroAPIService extends Component
         $consumerKey = Xero::$plugin->getSettings()->consumerKey;
         $consumerSecret = Xero::$plugin->getSettings()->consumerSecret;
         $privateKeyPath = Xero::$plugin->getSettings()->privateKeyPath;
+        $caBundlePath = Xero::$plugin->getSettings()->caBundlePath;
         $callbackUrl = Xero::$plugin->getSettings()->callbackUrl;
 
         // make sure consumer info is defined
-        if (isset($consumerKey) && isset($consumerSecret) && isset($privateKeyPath)) {
+        if (isset($consumerKey) && isset($consumerSecret) && isset($privateKeyPath) && isset($caBundlePath)) {
             
+            // check for ca bundle
+            if (!is_readable('file://'.CRAFT_BASE_PATH.'/'.$caBundlePath)) {
+                return [
+                    'message' => 'CA Bundle crt file can\'t be found.',
+                    'code' => 404
+                ];
+            }
+
             // check for private key
             if (!is_readable('file://'.CRAFT_BASE_PATH.'/'.$privateKeyPath)) {
                 return [
@@ -75,7 +84,7 @@ class XeroAPIService extends Component
                     'rsa_private_key' => 'file://'.CRAFT_BASE_PATH.'/'.$privateKeyPath,
                 ],
                 'curl' => array(
-                    CURLOPT_CAINFO => CRAFT_BASE_PATH .'/xero/certificates/ca-bundle.crt',
+                    CURLOPT_CAINFO => CRAFT_BASE_PATH.'/'.$caBundlePath,
                 ),
                 'xero' => [
                     'unitdp' => 4
@@ -158,7 +167,7 @@ class XeroAPIService extends Component
         foreach ($order->getLineItems() as $orderItem) {
             $lineItem = new LineItem($this->connection);
             $lineItem->setAccountCode(Xero::$plugin->getSettings()->accountSales);
-            $lineItem->setDescription($orderItem->snapshot['product']['title']);
+            $lineItem->setDescription($orderItem->description);
             $lineItem->setQuantity($orderItem->qty);
             if ($orderItem->salePrice > 0) {
                 $lineItem->setUnitAmount(Xero::$plugin->withDecimals($this->decimals, $orderItem->salePrice));

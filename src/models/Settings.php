@@ -42,6 +42,11 @@ class Settings extends Model
     /**
      * @var string
      */
+    public $caBundlePath;
+
+    /**
+     * @var string
+     */
     public $callbackUrl;
 
     /**
@@ -92,13 +97,15 @@ class Settings extends Model
             [[
                 'consumerKey', 
                 'consumerSecret', 
-                'privateKeyPath', 
+                'privateKeyPath',
+                'caBundlePath',
                 'callbackUrl'
             ], 'string'],
             [[
                 'consumerKey', 
                 'consumerSecret', 
-                'privateKeyPath', 
+                'privateKeyPath',
+                'caBundlePath',
                 'callbackUrl', 
                 'accountSales',
                 'accountShipping',
