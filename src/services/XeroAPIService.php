@@ -169,6 +169,10 @@ class XeroAPIService extends Component
             $lineItem->setAccountCode(Xero::$plugin->getSettings()->accountSales);
             $lineItem->setDescription($orderItem->description);
             $lineItem->setQuantity($orderItem->qty);
+            if ($orderItem->discount > 0) {
+                $discountPercentage = ($orderItem->discount / $orderItem->price) * 100;
+                $lineItem->setDiscountRate(Xero::$plugin->withDecimals($this->decimals, $discountPercentage));
+            }
             if ($orderItem->salePrice > 0) {
                 $lineItem->setUnitAmount(Xero::$plugin->withDecimals($this->decimals, $orderItem->salePrice));
             } else {
@@ -176,6 +180,7 @@ class XeroAPIService extends Component
             }
 
             // TODO: check for line item adjustments
+
 
             // check if product codes should be used and sent (inventory updates)
             if (Xero::$plugin->getSettings()->updateInventory) {
@@ -194,8 +199,22 @@ class XeroAPIService extends Component
                 $lineItem->setAccountCode(Xero::$plugin->getSettings()->accountShipping);
                 $lineItem->setDescription($adjustment->name);
                 $lineItem->setQuantity(1);
-                $lineItem->setUnitAmount(Xero::$plugin->withDecimals($this->decimals, $adjustment->amount));
+                $lineItem->setUnitAmount(Xero::$plugin->withDecimals($this->decimals, $order->getTotalShippingCost()));
                 $invoice->addLineItem($lineItem);    
+            } elseif ($adjustment->type == 'discount' ) {
+                $lineItem = new LineItem($this->connection);
+                $lineItem->setAccountCode(Xero::$plugin->getSettings()->accountDiscount);
+                $lineItem->setDescription($adjustment->name);
+                $lineItem->setQuantity(1);
+                $lineItem->setUnitAmount(Xero::$plugin->withDecimals($this->decimals, $adjustment->amount));
+                $invoice->addLineItem($lineItem);
+            } elseif ($adjustment->type !== 'tax'){
+                $lineItem = new LineItem($this->connection);
+                $lineItem->setAccountCode(Xero::$plugin->getSettings()->accountAdditionalFees);
+                $lineItem->setDescription($adjustment->name);
+                $lineItem->setQuantity(1);
+                $lineItem->setUnitAmount(Xero::$plugin->withDecimals($this->decimals, $adjustment->amount));
+                $invoice->addLineItem($lineItem);
             }
         }
                 

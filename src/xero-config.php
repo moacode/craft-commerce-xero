@@ -10,6 +10,7 @@ return [
         "accountSales" => 0, // int
         "accountShipping" => 0, // int
         "accountDiscounts" => 0, // int
+        "accountAdditionalFees" => 0, // int
         "accountReceivable" => 0, // int
         "accountRounding" => 0, // int
         "updateInventory" => "",
