@@ -170,7 +170,7 @@ class XeroAPIService extends Component
             $lineItem->setDescription($orderItem->description);
             $lineItem->setQuantity($orderItem->qty);
             if ($orderItem->discount > 0) {
-                $discountPercentage = ($orderItem->discount / $orderItem->price) * 100;
+                $discountPercentage = (($orderItem->discount / $orderItem->subtotal) * -100);
                 $lineItem->setDiscountRate(Xero::$plugin->withDecimals($this->decimals, $discountPercentage));
             }
             if ($orderItem->salePrice > 0) {
