@@ -67,6 +67,11 @@ class Settings extends Model
     /**
      * @var int
      */
+    public $accountAdditionalFees;
+
+    /**
+     * @var int
+     */
     public $accountReceivable;
 
     /**
@@ -110,7 +115,8 @@ class Settings extends Model
                 'accountSales',
                 'accountShipping',
                 'accountRounding',
-            //    'accountDiscounts', 
+                'accountDiscounts',
+                'accountAdditionalFees',
                 'accountReceivable',
             ], 'required']
         ];

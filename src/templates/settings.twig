@@ -69,14 +69,23 @@
             value: settings.accountRounding,
         }) }}
 
-        {# {{ forms.selectField({
+         {{ forms.selectField({
             label: "Discounts"|t('xero'),
             id: 'accountDiscounts',
             name: 'accountDiscounts',
             instructions: 'Discount totals map to this account',
             options: connection.allAccounts,
             value: settings.accountDiscounts,
-        }) }} #}
+        }) }}
+
+        {{ forms.selectField({
+            label: "Additional Fees"|t('xero'),
+            id: 'accountAdditionalFees',
+            name: 'accountAdditionalFees',
+            instructions: 'Additional Fees and Adjustments map to this account',
+            options: connection.allAccounts,
+            value: settings.accountAdditionalFees,
+        }) }}
 
         {{ forms.lightswitchField({
             label: 'Create Payments?',
