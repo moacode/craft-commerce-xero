@@ -8,10 +8,10 @@
  * @copyright Copyright (c) 2019 Myles Derham
  */
 
-namespace mediabeastnz\xero\models;
+namespace thejoshsmith\xero\models;
 
-use mediabeastnz\xero\Xero;
-use mediabeastnz\xero\records\InvoiceRecord;
+use thejoshsmith\xero\Xero;
+use thejoshsmith\xero\records\InvoiceRecord;
 
 use craft\base\Model;
 use craft\validators\HandleValidator;
@@ -82,7 +82,7 @@ class InvoiceModel extends Model
 
         $record->orderId = $model->orderId;
         $record->invoiceId = $model->invoiceId;
-    
+
         // Save it!
         $record->save(false);
 

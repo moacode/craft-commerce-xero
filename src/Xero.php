@@ -8,15 +8,15 @@
  * @copyright Copyright (c) 2019 Myles Derham
  */
 
-namespace mediabeastnz\xero;
+namespace thejoshsmith\xero;
 
-use mediabeastnz\xero\services\XeroConnectionService;
-use mediabeastnz\xero\services\XeroAPIService;
-use mediabeastnz\xero\models\Settings;
-use mediabeastnz\xero\web\assets\SendToXeroAsset;
-use mediabeastnz\xero\behaviors\OrderBehavior;
-use mediabeastnz\xero\elementactions\OrdersAction;
-use mediabeastnz\xero\jobs\SendToXeroJob;
+use thejoshsmith\xero\services\XeroConnectionService;
+use thejoshsmith\xero\services\XeroAPIService;
+use thejoshsmith\xero\models\Settings;
+use thejoshsmith\xero\web\assets\SendToXeroAsset;
+use thejoshsmith\xero\behaviors\OrderBehavior;
+use thejoshsmith\xero\elementactions\OrdersAction;
+use thejoshsmith\xero\jobs\SendToXeroJob;
 
 use Craft;
 use craft\base\Plugin;
@@ -86,7 +86,7 @@ class Xero extends Plugin
         // });
 
         Event::on(View::class, View::EVENT_BEFORE_RENDER_TEMPLATE, function (TemplateEvent $event) {
-            
+
             $view = Craft::$app->getView();
 
             // only run for CP requests
@@ -97,7 +97,7 @@ class Xero extends Plugin
             // Only run on the entries edit template
             switch ($event->template) {
                 case 'commerce/orders/_edit':
-                     
+
                     if ( $event->variables['order']->isCompleted) {
 
                         if ($this->api->getInvoiceFromOrder($event->variables['order'])) {
@@ -110,14 +110,14 @@ class Xero extends Plugin
                             $view->registerJs($js, View::POS_END);
                         }
                         $view->registerAssetBundle(SendToXeroAsset::class);
-                        
+
                     }
 
                 break;
             }
         });
 
-        
+
         // Send completed and paid orders of to Xero (30 second delay)
         Event::on(Order::class, Order::EVENT_AFTER_ORDER_PAID, function(Event $e) {
             Craft::$app->queue->delay(30)->push(new SendToXeroJob([
@@ -156,5 +156,5 @@ class Xero extends Plugin
             ]
         );
     }
-    
+
 }

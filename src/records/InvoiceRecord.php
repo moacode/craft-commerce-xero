@@ -8,7 +8,7 @@
  * @copyright Copyright (c) 2019 Myles Derham
  */
 
-namespace mediabeastnz\xero\records;
+namespace thejoshsmith\xero\records;
 
 use craft\db\ActiveRecord;
 use craft\commerce\elements\Order;

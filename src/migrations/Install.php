@@ -8,9 +8,9 @@
  * @copyright Copyright (c) 2019 Myles Derham
  */
 
-namespace mediabeastnz\xero\migrations;
+namespace thejoshsmith\xero\migrations;
 
-use mediabeastnz\xero\Xero;
+use thejoshsmith\xero\Xero;
 
 use Craft;
 use craft\config\DbConfig;

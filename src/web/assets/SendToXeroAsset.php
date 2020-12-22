@@ -8,7 +8,7 @@
  * @copyright Copyright (c) 2019 Myles Derham
  */
 
-namespace mediabeastnz\xero\web\assets;
+namespace thejoshsmith\xero\web\assets;
 
 use craft\web\AssetBundle;
 use craft\web\assets\cp\CpAsset;
@@ -23,7 +23,7 @@ class SendToXeroAsset extends AssetBundle
      */
     public function init()
     {
-        $this->sourcePath = "@mediabeastnz/xero/web/assets/dist";
+        $this->sourcePath = "@thejoshsmith/xero/web/assets/dist";
 
         $this->depends = [
             CpAsset::class,

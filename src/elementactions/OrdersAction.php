@@ -8,7 +8,7 @@
  * @copyright Copyright (c) 2019 Myles Derham
  */
 
-namespace mediabeastnz\xero\elementactions;
+namespace thejoshsmith\xero\elementactions;
 
 use Craft;
 use craft\base\ElementAction;
@@ -21,7 +21,7 @@ class OrdersAction extends ElementAction
     public function init()
     {
         if ($this->label === null) {
-            $this->label = Craft::t('xero', 'Send to Xero');            
+            $this->label = Craft::t('xero', 'Send to Xero');
         }
     }
 
@@ -35,5 +35,5 @@ class OrdersAction extends ElementAction
         $type = Json::encode(static::class);
         // Craft::$app->getView()->registerJs($js);
     }
-    
+
 }

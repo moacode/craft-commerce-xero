@@ -8,9 +8,9 @@
  * @copyright Copyright (c) 2019 Myles Derham
  */
 
-namespace mediabeastnz\xero\services;
+namespace thejoshsmith\xero\services;
 
-use mediabeastnz\xero\Xero;
+use thejoshsmith\xero\Xero;
 use XeroPHP\Application\PrivateApplication;
 use XeroPHP\Remote\Exception\BadRequestException;
 use XeroPHP\Remote\Exception\UnauthorizedException;
@@ -41,7 +41,7 @@ class XeroConnectionService extends Component
 
         // make sure consumer info is defined
         if (isset($consumerKey) && isset($consumerSecret) && isset($privateKeyPath) && isset($caBundlePath)) {
-            
+
             // check for ca bundle
             if (!is_readable('file://'.CRAFT_BASE_PATH.'/'.$caBundlePath)) {
                 return [
@@ -74,7 +74,7 @@ class XeroConnectionService extends Component
             $connection = new PrivateApplication($config);
 
             try {
-                
+
                 // retrieve data from cache or API
                 $org = $this->getOrganisation($connection);
                 $accounts = $this->getAccounts($connection);
@@ -84,7 +84,7 @@ class XeroConnectionService extends Component
                 $assetAccounts[] = ['label' => 'Please select an account','value' => ''];
                 $revenueAccounts[] = ['label' => 'Please select an account','value' => ''];
                 $expensesAccounts[] = ['label' => 'Please select an account','value' => ''];
-                
+
                 foreach ($accounts as $account) {
                     // store all accounts
                     $allAccounts[] = [

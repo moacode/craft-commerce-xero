@@ -8,10 +8,10 @@
  * @copyright Copyright (c) 2019 Myles Derham
  */
 
-namespace mediabeastnz\xero\controllers;
+namespace thejoshsmith\xero\controllers;
 
-use mediabeastnz\xero\Xero;
-use mediabeastnz\xero\services\XeroAPIService;
+use thejoshsmith\xero\Xero;
+use thejoshsmith\xero\services\XeroAPIService;
 
 use Craft;
 use craft\web\Controller;
@@ -36,5 +36,5 @@ class BaseController extends Controller
         }
         return false;
     }
-    
+
 }

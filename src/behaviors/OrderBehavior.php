@@ -8,7 +8,7 @@
  * @copyright Copyright (c) 2019 Myles Derham
  */
 
-namespace mediabeastnz\xero\behaviors;
+namespace thejoshsmith\xero\behaviors;
 
 use Craft;
 use yii\base\Behavior;

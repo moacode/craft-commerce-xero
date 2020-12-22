@@ -8,9 +8,9 @@
  * @copyright Copyright (c) 2019 Myles Derham
  */
 
-namespace mediabeastnz\xero\models;
+namespace thejoshsmith\xero\models;
 
-use mediabeastnz\xero\Xero;
+use thejoshsmith\xero\Xero;
 
 use Craft;
 use craft\base\Model;
@@ -88,7 +88,7 @@ class Settings extends Model
      * @var boolean
      */
     public $createPayments;
-    
+
 
     // Public Methods
     // =========================================================================
@@ -100,18 +100,18 @@ class Settings extends Model
     {
         return [
             [[
-                'consumerKey', 
-                'consumerSecret', 
+                'consumerKey',
+                'consumerSecret',
                 'privateKeyPath',
                 'caBundlePath',
                 'callbackUrl'
             ], 'string'],
             [[
-                'consumerKey', 
-                'consumerSecret', 
+                'consumerKey',
+                'consumerSecret',
                 'privateKeyPath',
                 'caBundlePath',
-                'callbackUrl', 
+                'callbackUrl',
                 'accountSales',
                 'accountShipping',
                 'accountRounding',

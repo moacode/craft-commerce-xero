@@ -8,11 +8,11 @@
  * @copyright Copyright (c) 2019 Myles Derham
  */
 
-namespace mediabeastnz\xero\services;
+namespace thejoshsmith\xero\services;
 
-use mediabeastnz\xero\Xero;
-use mediabeastnz\xero\records\InvoiceRecord;
-use mediabeastnz\xero\models\InvoiceModel;
+use thejoshsmith\xero\Xero;
+use thejoshsmith\xero\records\InvoiceRecord;
+use thejoshsmith\xero\models\InvoiceModel;
 
 use XeroPHP\Application\PrivateApplication;
 use XeroPHP\Remote\Exception\BadRequestException;
@@ -58,7 +58,7 @@ class XeroAPIService extends Component
 
         // make sure consumer info is defined
         if (isset($consumerKey) && isset($consumerSecret) && isset($privateKeyPath) && isset($caBundlePath)) {
-            
+
             // check for ca bundle
             if (!is_readable('file://'.CRAFT_BASE_PATH.'/'.$caBundlePath)) {
                 return [
@@ -104,7 +104,7 @@ class XeroAPIService extends Component
         if ($order) {
             // find or create the Contact
             $contact = $this->findOrCreateContact($order);
-            if ($contact){ 
+            if ($contact){
                 // create the Invoice
                 $invoice = $this->createInvoice($contact, $order);
                 // only continue to payment if a payment has been made and payments are enabled
@@ -120,7 +120,7 @@ class XeroAPIService extends Component
             }
         }
         return false;
-    } 
+    }
 
 
     public function findOrCreateContact(Order $order)
@@ -139,10 +139,10 @@ class XeroAPIService extends Component
                         ->setFirstName($user->firstName)
                         ->setLastName($user->lastName)
                         ->setEmailAddress($user->email);
-                    
+
                 // TODO: add hook (before_save_contact)
-                        
-                $contact->save();       
+
+                $contact->save();
             }
             return $contact;
         } catch(Exception $e) {
@@ -188,7 +188,7 @@ class XeroAPIService extends Component
             }
 
             $invoice->addLineItem($lineItem);
-        }      
+        }
 
         // get all adjustments (discounts,shipping etc)
         $adjustments = $order->getOrderAdjustments();
@@ -200,7 +200,7 @@ class XeroAPIService extends Component
                 $lineItem->setDescription($adjustment->name);
                 $lineItem->setQuantity(1);
                 $lineItem->setUnitAmount(Xero::$plugin->withDecimals($this->decimals, $order->getTotalShippingCost()));
-                $invoice->addLineItem($lineItem);    
+                $invoice->addLineItem($lineItem);
             } elseif ($adjustment->type == 'discount' ) {
                 $lineItem = new LineItem($this->connection);
                 $lineItem->setAccountCode(Xero::$plugin->getSettings()->accountDiscount);
@@ -217,7 +217,7 @@ class XeroAPIService extends Component
                 $invoice->addLineItem($lineItem);
             }
         }
-                
+
         // setup invoice
         $invoice->setStatus('AUTHORISED')
                 ->setType('ACCREC')
@@ -232,17 +232,17 @@ class XeroAPIService extends Component
 
         try {
             // save the invoice
-            $invoice->save();            
+            $invoice->save();
 
             // Would $orderTotal ever be more than $invoice->Total?
             // If so, what should happen with rounding?
             $orderTotal = Xero::$plugin->withDecimals($this->decimals, $order->getTotalPrice());
             if ($invoice->Total > $orderTotal) {
-                
+
                 // caclulate how much rounding to adjust
                 $roundingAdjustment = $orderTotal - $invoice->Total;
                 $roundingAdjustment = Xero::$plugin->withDecimals($this->decimals, $roundingAdjustment);
-                
+
                 // add rounding to invoice
                 $lineItem = new LineItem($this->connection);
                 $lineItem->setAccountCode(Xero::$plugin->getSettings()->accountRounding);
@@ -250,10 +250,10 @@ class XeroAPIService extends Component
                 $lineItem->setQuantity(1);
                 $lineItem->setUnitAmount($roundingAdjustment);
                 $invoice->addLineItem($lineItem);
-                
+
                 // update the invoice with new rounding adjustment
                 $invoice->save();
-            }   
+            }
 
             $invoiceRecord = new InvoiceRecord();
             $invoiceRecord->orderId = $order->id;
