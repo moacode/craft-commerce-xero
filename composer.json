@@ -24,7 +24,8 @@
   ],
   "require": {
     "craftcms/cms": "^3.1.0",
-    "calcinai/xero-php": "^v1.8.6"
+    "craftcms/commerce": "^2.0.0 || ^3.0.0",
+    "calcinai/xero-php": "^v2.2.4"
   },
   "autoload": {
     "psr-4": {
@@ -38,13 +39,13 @@
   "extra": {
     "name": "Xero",
     "handle": "xero",
-    "hasCpSettings": true,
-    "hasCpSection": false,
+    "hasCpSettings": false,
+    "hasCpSection": true,
     "changelogUrl": "https://raw.githubusercontent.com/thejoshsmith/craft-commerce-xero/master/CHANGELOG.md",
     "components": {
       "XeroConnectionService": "thejoshsmith\\xero\\services\\XeroConnectionService",
       "XeroAPIService": "thejoshsmith\\xero\\services\\XeroAPIService"
     },
-    "class": "thejoshsmith\\xero\\Xero"
+    "class": "thejoshsmith\\xero\\Plugin"
   }
 }
