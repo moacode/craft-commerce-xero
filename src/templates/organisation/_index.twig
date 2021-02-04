@@ -1,0 +1,12 @@
+{% extends "_layouts/cp" %}
+
+{% set selectedSubnavItem = 'organisation' %}
+{% set docTitle = 'Xero Organisation' %}
+
+{% block content %}
+    <h1>Xero Organisation</h1>
+    <h2 class="sec">Connect to Xero</h2>
+    {# <p>It looks like you don't have a connected Xero organisation. Click the button below to get started.</p> #}
+    <p>To get started, you'll need to connect your Xero organisation to Craft. Use the button below to start the authentication process.</p>
+    <a class="btn submit" href="{{siteUrl('admin/xero/auth')}}">Connect to Xero</a>
+{% endblock %}

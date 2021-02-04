@@ -10,20 +10,17 @@
 
 namespace thejoshsmith\xero\services;
 
-use thejoshsmith\xero\Xero;
+use thejoshsmith\xero\Plugin;
 use XeroPHP\Application\PrivateApplication;
 use XeroPHP\Remote\Exception\BadRequestException;
 use XeroPHP\Remote\Exception\UnauthorizedException;
 
 use Craft;
 use craft\base\Component;
-use craft\helpers\UrlHelper;
-
-use yii\caching\Cache;
 
 /**
- * @author    Myles Derham
- * @package   Xero
+ * @author  Myles Derham
+ * @package Xero
  */
 class XeroConnectionService extends Component
 {
@@ -33,11 +30,11 @@ class XeroConnectionService extends Component
     public function setup()
     {
         // get the settings before checking connection
-        $consumerKey = Xero::$plugin->getSettings()->consumerKey;
-        $consumerSecret = Xero::$plugin->getSettings()->consumerSecret;
-        $privateKeyPath = Xero::$plugin->getSettings()->privateKeyPath;
-        $caBundlePath = Xero::$plugin->getSettings()->caBundlePath;
-        $callbackUrl = Xero::$plugin->getSettings()->callbackUrl;
+        $consumerKey = Plugin::$plugin->getSettings()->consumerKey;
+        $consumerSecret = Plugin::$plugin->getSettings()->consumerSecret;
+        $privateKeyPath = Plugin::$plugin->getSettings()->privateKeyPath;
+        $caBundlePath = Plugin::$plugin->getSettings()->caBundlePath;
+        $callbackUrl = Plugin::$plugin->getSettings()->callbackUrl;
 
         // make sure consumer info is defined
         if (isset($consumerKey) && isset($consumerSecret) && isset($privateKeyPath) && isset($caBundlePath)) {
@@ -139,7 +136,7 @@ class XeroConnectionService extends Component
             }
 
             Craft::info(
-                Craft::t('xero','Xero API connection successful'),
+                Craft::t('xero', 'Xero API connection successful'),
                 __METHOD__
             );
 
@@ -159,18 +156,22 @@ class XeroConnectionService extends Component
 
     public function getAccounts(PrivateApplication $connection)
     {
-        return Craft::$app->getCache()->getOrSet('xero-accounts', function () use ($connection) {
-            // get all accounts
-            return $connection->load('Accounting\\Account')->execute();
-        }, 300);
+        return Craft::$app->getCache()->getOrSet(
+            'xero-accounts', function () use ($connection) {
+                // get all accounts
+                return $connection->load('Accounting\\Account')->execute();
+            }, 300
+        );
     }
 
     public function getOrganisation(PrivateApplication $connection)
     {
-        return Craft::$app->getCache()->getOrSet('xero-organisation', function () use ($connection) {
-            // get the org name
-            return $connection->load('Accounting\\Organisation')->first();
-        }, 300);
+        return Craft::$app->getCache()->getOrSet(
+            'xero-organisation', function () use ($connection) {
+                // get the org name
+                return $connection->load('Accounting\\Organisation')->first();
+            }, 300
+        );
     }
 
 }

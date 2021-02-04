@@ -10,17 +10,24 @@
 
 namespace thejoshsmith\xero\controllers;
 
-use thejoshsmith\xero\Xero;
-use thejoshsmith\xero\services\XeroAPIService;
+use thejoshsmith\xero\Plugin;
 
 use Craft;
 use craft\web\Controller;
 use craft\commerce\Plugin as Commerce;
-use yii\web\ForbiddenHttpException;
-use yii\web\Response;
 
 class BaseController extends Controller
 {
+    /**
+     * Initialises the base controller
+     *
+     * @return void
+     */
+    public function init()
+    {
+        $this->requirePermission('accessPlugin-xero');
+        parent::init();
+    }
 
     // Public Methods
     // =========================================================================
@@ -32,7 +39,7 @@ class BaseController extends Controller
         $orderId = Craft::$app->request->getParam('orderId');
         if ($orderId) {
             $order = Commerce::getInstance()->getOrders()->getOrderById($orderId);
-            Xero::$plugin->api->sendOrder($order);
+            Plugin::getInstance()->api->sendOrder($order);
         }
         return false;
     }

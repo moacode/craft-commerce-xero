@@ -10,13 +10,11 @@
 
 namespace thejoshsmith\xero\services;
 
-use thejoshsmith\xero\Xero;
 use thejoshsmith\xero\records\InvoiceRecord;
-use thejoshsmith\xero\models\InvoiceModel;
+use thejoshsmith\xero\traits\XeroAPI;
 
-use XeroPHP\Application\PrivateApplication;
-use XeroPHP\Remote\Exception\BadRequestException;
-use XeroPHP\Remote\Exception\UnauthorizedException;
+use League\OAuth2\Client\Provider\AbstractProvider;
+
 use XeroPHP\Models\Accounting\Contact;
 use XeroPHP\Models\Accounting\Invoice;
 use XeroPHP\Models\Accounting\Invoice\LineItem;
@@ -24,87 +22,51 @@ use XeroPHP\Models\Accounting\Payment;
 use XeroPHP\Models\Accounting\Account;
 
 use Craft;
-use craft\commerce\elements\Order;
 use craft\base\Component;
-use yii\caching\Cache;
+use craft\commerce\elements\Order;
 
 /**
- * @author    Myles Derham
- * @package   Xero
+ * @author  Myles Derham
+ * @author  Josh Smith <hey@joshthe.dev>
+ * @package Xero
  */
 class XeroAPIService extends Component
 {
+    /**
+     * Use the XeroAPI trait to handle
+     * Xero authentication and API requests
+     */
+    use XeroAPI;
 
-    private $connection;
-
+    /**
+     * Defines the number of decimals to use
+     *
+     * @var integer
+     */
     private $decimals = 2;
 
     // Public Methods
     // =========================================================================
 
-    public function init()
+    /**
+     * Initialise the service
+     * The DI container created in the Services trait
+     * will automatically inject a configured Xero Provider
+     *
+     * @param  AbstractProvider $xeroProvider Guzzle wrapped Xero Provider
+     * @return void
+     */
+    public function __construct(AbstractProvider $xeroProvider)
     {
-        $this->connection = $this->getConnection();
+        $this->_setProvider($xeroProvider);
     }
-
-    public function getConnection()
-    {
-        // get the settings before checking connection
-        $consumerKey = Xero::$plugin->getSettings()->consumerKey;
-        $consumerSecret = Xero::$plugin->getSettings()->consumerSecret;
-        $privateKeyPath = Xero::$plugin->getSettings()->privateKeyPath;
-        $caBundlePath = Xero::$plugin->getSettings()->caBundlePath;
-        $callbackUrl = Xero::$plugin->getSettings()->callbackUrl;
-
-        // make sure consumer info is defined
-        if (isset($consumerKey) && isset($consumerSecret) && isset($privateKeyPath) && isset($caBundlePath)) {
-
-            // check for ca bundle
-            if (!is_readable('file://'.CRAFT_BASE_PATH.'/'.$caBundlePath)) {
-                return [
-                    'message' => 'CA Bundle crt file can\'t be found.',
-                    'code' => 404
-                ];
-            }
-
-            // check for private key
-            if (!is_readable('file://'.CRAFT_BASE_PATH.'/'.$privateKeyPath)) {
-                return [
-                    'message' => 'Private key can\'t be found.',
-                    'code' => 404
-                ];
-            }
-
-            // setup the request configuration
-            $config = [
-                'oauth' => [
-                    'callback' => $callbackUrl,
-                    'consumer_key' => $consumerKey,
-                    'consumer_secret' => $consumerSecret,
-                    'rsa_private_key' => 'file://'.CRAFT_BASE_PATH.'/'.$privateKeyPath,
-                ],
-                'curl' => array(
-                    CURLOPT_CAINFO => CRAFT_BASE_PATH.'/'.$caBundlePath,
-                ),
-                'xero' => [
-                    'unitdp' => 4
-                ]
-            ];
-
-            $connection = new PrivateApplication($config);
-            return $connection;
-        }
-
-        return false;
-    }
-
 
     public function sendOrder(Order $order)
     {
         if ($order) {
             // find or create the Contact
             $contact = $this->findOrCreateContact($order);
-            if ($contact){
+            if ($contact) {
                 // create the Invoice
                 $invoice = $this->createInvoice($contact, $order);
                 // only continue to payment if a payment has been made and payments are enabled
@@ -122,23 +84,24 @@ class XeroAPIService extends Component
         return false;
     }
 
-
     public function findOrCreateContact(Order $order)
     {
         try {
 
             // this can return either fullname or their username (email hopefully)
             $user = $order->getUser();
-            $contact = $this->connection->load('Accounting\\Contact')->where('
+            $contact = $this->connection->load('Accounting\\Contact')->where(
+                '
                 Name=="' . $user->getName() . '" OR
                 EmailAddress=="' . $user->getName() . '"
-            ')->first();
+            '
+            )->first();
             if (empty($contact) && !isset($contact)) {
                 $contact = new Contact($this->connection);
                 $contact->setName($user->getName())
-                        ->setFirstName($user->firstName)
-                        ->setLastName($user->lastName)
-                        ->setEmailAddress($user->email);
+                    ->setFirstName($user->firstName)
+                    ->setLastName($user->lastName)
+                    ->setEmailAddress($user->email);
 
                 // TODO: add hook (before_save_contact)
 
@@ -158,7 +121,6 @@ class XeroAPIService extends Component
         }
         return false;
     }
-
 
     public function createInvoice(Contact $contact, Order $order)
     {
@@ -208,7 +170,7 @@ class XeroAPIService extends Component
                 $lineItem->setQuantity(1);
                 $lineItem->setUnitAmount(Xero::$plugin->withDecimals($this->decimals, $adjustment->amount));
                 $invoice->addLineItem($lineItem);
-            } elseif ($adjustment->type !== 'tax'){
+            } elseif ($adjustment->type !== 'tax') {
                 $lineItem = new LineItem($this->connection);
                 $lineItem->setAccountCode(Xero::$plugin->getSettings()->accountAdditionalFees);
                 $lineItem->setDescription($adjustment->name);
@@ -220,13 +182,13 @@ class XeroAPIService extends Component
 
         // setup invoice
         $invoice->setStatus('AUTHORISED')
-                ->setType('ACCREC')
-                ->setContact($contact)
-                ->setLineAmountType("Exclusive") // TODO: this should be optional (Inclusive/Exclusive)
-                ->setCurrencyCode($order->getPaymentCurrency())
-                ->setInvoiceNumber($order->reference)
-                ->setSentToContact(true)
-                ->setDueDate(new \DateTime('NOW'));
+            ->setType('ACCREC')
+            ->setContact($contact)
+            ->setLineAmountType("Exclusive") // TODO: this should be optional (Inclusive/Exclusive)
+            ->setCurrencyCode($order->getPaymentCurrency())
+            ->setInvoiceNumber($order->reference)
+            ->setSentToContact(true)
+            ->setDueDate(new \DateTime('NOW'));
 
         // TODO: add hook (before_invoice_save)
 
@@ -280,17 +242,16 @@ class XeroAPIService extends Component
 
     }
 
-
     public function createPayment(Invoice $invoice, Account $account, Order $order)
     {
         try {
             // create the payment
             $payment = new Payment($this->connection);
             $payment->setInvoice($invoice)
-                    ->setAccount($account)
-                    ->setReference($order->getLastTransaction()->reference)
-                    ->setAmount(Xero::$plugin->withDecimals($this->decimals, $order->getTotalPaid()))
-                    ->setDate($order->datePaid);
+                ->setAccount($account)
+                ->setReference($order->getLastTransaction()->reference)
+                ->setAmount(Xero::$plugin->withDecimals($this->decimals, $order->getTotalPaid()))
+                ->setDate($order->datePaid);
             $payment->save();
             return $payment;
         } catch(Exception $e) {
@@ -306,7 +267,6 @@ class XeroAPIService extends Component
         }
         return false;
     }
-
 
     public function getAccountByCode($code)
     {
@@ -327,7 +287,6 @@ class XeroAPIService extends Component
         return false;
     }
 
-
     public function getInvoiceFromOrder(Order $order)
     {
         $invoice = InvoiceRecord::find()->where(['orderId' => $order->id])->one();
@@ -336,5 +295,4 @@ class XeroAPIService extends Component
         }
         return false;
     }
-
 }

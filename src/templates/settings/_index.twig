@@ -1,0 +1,59 @@
+{% extends "_layouts/cp" %}
+
+{% set selectedSubnavItem = 'settings' %}
+{% set docTitle = 'Xero Settings' %}
+
+{% import "_includes/forms" as forms %}
+
+{% block content %}
+
+    <h2>{{ "Xero Settings"|t('xero') }}</h2>
+    <form action="" method="post" accept-charset="UTF-8" data-saveshortcut>
+        <input type="hidden" name="action" value="xero/settings/save-settings">
+        {{ redirectInput('xero/settings') }}
+        {{ csrfInput() }}
+
+        <h3>{{ 'App Details'|t('xero') }}</h3>
+        {{ forms.autosuggestField({
+            first: true,
+            label: 'Client ID'|t('xero'),
+            instructions: "The Client ID issued by Xero when you created your app."|t('xero'),
+            id: 'xeroClientId',
+            name: 'settings[xeroClientId]',
+            placeholder: "",
+            value: settings.xeroClientId,
+            errors: settings.getErrors('xeroClientId'),
+            suggestEnvVars: true,
+            autofocus: true,
+        }) }}
+
+        {{ forms.autosuggestField({
+            first: true,
+            label: 'Client Secret'|t('xero'),
+            instructions: "The Client Secret issued by Xero when you created your app."|t('xero'),
+            id: 'xeroClientSecret',
+            name: 'settings[xeroClientSecret]',
+            placeholder: "",
+            value: settings.xeroClientSecret,
+            errors: settings.getErrors('xeroClientSecret'),
+            suggestEnvVars: true,
+            autofocus: true,
+        }) }}
+
+        {{ forms.copytextField({
+            readonly: true,
+            label: 'OAuth 2.0 redirect URI'|t('xero'),
+            instructions: "Add this as a redirect URI within your Xero app."|t('xero'),
+            tip: "Don't forget to add any staging and production domain(s)",
+            id: 'xeroCallbackDomain',
+            name: 'settings[xeroCallbackDomain]',
+            placeholder: "myapp.nz",
+            value: 'https://www.craftcms.docksal/admin/xero/auth',
+            suggestEnvVars: true,
+            autofocus: true,
+        }) }}
+
+        <input type="submit" class="btn submit" value="{{ 'Save'|t('xero') }}">
+    </form>
+
+{% endblock %}
