@@ -26,7 +26,7 @@ use League\OAuth2\Client\Provider\AbstractProvider;
   *
   * @category Traits
   * @package  CraftCommerceXero
-  * @author   Josh Smith <hey@joshthe.dev>
+  * @author   Josh Smith <by@joshthe.dev>
   * @license  Proprietary https://github.com/thejoshsmith/craft-commerce-xero/blob/master/LICENSE.md
   * @link     https://joshthe.dev
   * @since    1.0.0
@@ -38,7 +38,7 @@ trait XeroAPI
      * These scopes are used to access the required
      * information from the connected tenants account
      */
-    private $_scopes = 'openid email profile accounting.transactions';
+    private $_scopes;
 
     /**
      * Stores the Xero Provider
@@ -59,7 +59,7 @@ trait XeroAPI
      *
      * @var string
      */
-    private $_tenantId = '';
+    private $_tenantId;
 
     /**
      * Sets the Provider
@@ -67,7 +67,7 @@ trait XeroAPI
      * @param  AbstractProvider $provider An Abstract Provider (Guzzle)
      * @return void
      */
-    private function _setProvider(AbstractProvider $provider)
+    public function setProvider(AbstractProvider $provider)
     {
         $this->_provider = $provider;
     }

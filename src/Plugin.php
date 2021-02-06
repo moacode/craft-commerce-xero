@@ -41,7 +41,8 @@ class Plugin extends CraftPlugin
     // =========================================================================
 
     const HANDLE = 'xero';
-    const XERO_CALLBACK_ROUTE = 'xero/auth';
+    const XERO_OAUTH_CALLBACK_ROUTE = 'xero/auth';
+    const XERO_OAUTH_SCOPES = 'openid email profile accounting.transactions';
 
     // Static Properties
     // =========================================================================
@@ -68,7 +69,6 @@ class Plugin extends CraftPlugin
         parent::init();
 
         // Bootstrap the plugin
-        $this->_registerDependencies();
         $this->_setPluginComponents();
         $this->_registerEvents();
         $this->_registerCpRoutes();

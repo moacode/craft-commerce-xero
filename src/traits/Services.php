@@ -56,37 +56,32 @@ trait Services
      */
     private function _setPluginComponents()
     {
-        $this->setComponents(
-            [
-            'api' => XeroAPIService::class,
-            'xeroConnectionService' => XeroConnectionService::class,
-            ]
-        );
-    }
-
-    /**
-     * Register dependencies using the global
-     * dependency injection container for this plugin
-     *
-     * @return void
-     */
-    private function _registerDependencies()
-    {
         $settings = $this->getSettings();
 
+        // Create an preconfigured instance of the Xero provider
+        // to be injected into each instance of the api service
         $provider = new \Calcinai\OAuth2\Client\Provider\Xero(
             [
-                'clientId'      => Craft::parseEnv($settings->xeroClientId),
-                'clientSecret'  => Craft::parseEnv($settings->xeroClientSecret),
-                'redirectUri'   => UrlHelper::cpUrl(Plugin::XERO_CALLBACK_ROUTE),
+                'clientId' => Craft::parseEnv(
+                    $settings->xeroClientId
+                ),
+                'clientSecret' => Craft::parseEnv(
+                    $settings->xeroClientSecret
+                ),
+                'redirectUri' => UrlHelper::cpUrl(
+                    Plugin::XERO_OAUTH_CALLBACK_ROUTE
+                ),
             ]
         );
 
-        // All classes that have a typehinted constructor argument
-        // of the Abstract Provider will receive a configured Xero Provider
-        Craft::$container->set(
-            'League\OAuth2\Client\Provider\AbstractProvider',
-            $provider
+        $this->setComponents(
+            [
+                'api' => [
+                    'class' => XeroAPIService::class,
+                    'scopes' => Plugin::XERO_OAUTH_SCOPES,
+                    'provider' => $provider
+                ]
+            ]
         );
     }
 }

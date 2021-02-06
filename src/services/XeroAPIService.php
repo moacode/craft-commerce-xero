@@ -48,19 +48,6 @@ class XeroAPIService extends Component
     // Public Methods
     // =========================================================================
 
-    /**
-     * Initialise the service
-     * The DI container created in the Services trait
-     * will automatically inject a configured Xero Provider
-     *
-     * @param  AbstractProvider $xeroProvider Guzzle wrapped Xero Provider
-     * @return void
-     */
-    public function __construct(AbstractProvider $xeroProvider)
-    {
-        $this->_setProvider($xeroProvider);
-    }
-
     public function sendOrder(Order $order)
     {
         if ($order) {
