@@ -79,12 +79,8 @@ trait XeroOAuthStorage
         $transaction = Craft::$app->getDb()->beginTransaction();
 
         try {
-
             $resourceOwner = $this->saveResourceOwner($identity);
-
-            $credential = $this->saveCredential(
-                Credential::populateFromAccessToken($accessToken)
-            );
+            $credential = $this->saveAccessToken($accessToken);
 
             // Now, save each tenant connection
             foreach ($xeroTenants as $xeroTenant) {
@@ -102,6 +98,18 @@ trait XeroOAuthStorage
         return $connections;
     }
 
+    /**
+     * Saves a Connection record to the database
+     *
+     * @param string        $connectionId  Tenant connection ID
+     * @param ResourceOwner $resourceOwner Resource Owner Record
+     * @param Credential    $credential    Credential Record
+     * @param Tenant        $tenant        Tenant Record
+     * @param integer       $userId        Craft User ID
+     * @param integer       $siteId        Craft Site ID
+     *
+     * @return Connection
+     */
     public function saveConnection(
         string $connectionId,
         ResourceOwner $resourceOwner,
@@ -180,12 +188,9 @@ trait XeroOAuthStorage
      *
      * @return Credential
      */
-    public function saveCredential(Credential $credential): Credential
+    public function saveAccessToken(AccessTokenInterface $accessToken): Credential
     {
-        if ($credential->id) {
-            $credential->setIsNewRecord(false);
-        }
-
+        $credential = Credential::populateFromAccessToken($accessToken);
         $credential->save();
 
         return $credential;
