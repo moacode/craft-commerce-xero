@@ -10,11 +10,11 @@
 
 namespace thejoshsmith\xero\services;
 
+use thejoshsmith\xero\Plugin;
 use thejoshsmith\xero\records\InvoiceRecord;
 
-use thejoshsmith\xero\interfaces\XeroAPI as XeroAPIInterface;
-
 use XeroPHP\Application as XeroApplication;
+
 use XeroPHP\Models\Accounting\Contact;
 use XeroPHP\Models\Accounting\Invoice;
 use XeroPHP\Models\Accounting\Invoice\LineItem;
@@ -40,33 +40,8 @@ class XeroAPIService extends Component
      */
     private $decimals = 2;
 
-    /**
-     * Defines the authenticated Xero client
-     *
-     * @var XeroApplication
-     */
-    private $_xeroClient;
-
     // Public Methods
     // =========================================================================
-
-    /**
-     * Class constructor
-     * Intiaises the Xero Client
-     *
-     * @param XeroApplication $xeroClient Authenticated Xero Client object
-     *
-     * @author Josh Smith <by@joshthe.dev>
-     * @since  1.0.0
-     *
-     * @return void
-     */
-    public function __construct(XeroApplication $xeroClient = null)
-    {
-        if ($xeroClient instanceof XeroApplication) {
-            $this->_xeroClient = $xeroClient;
-        }
-    }
 
     /**
      * Returns the Xero client connection
@@ -79,26 +54,15 @@ class XeroAPIService extends Component
      */
     public function getConnection(): XeroApplication
     {
-        if (empty($this->_xeroClient)) {
-            throw new Exception('The Xero Client isn\'t initialised.');
+        try {
+            $xeroClient = Plugin::getInstance()
+                ->getXeroOAuth()
+                ->createClient();
+        } catch (Exception $e) {
+            throw new Exception('Unable to get Xero Client, check there\'s an active connection.');
         }
 
-        return $this->_xeroClient;
-    }
-
-    /**
-     * Sets the authenticated Xero Client connection object
-     *
-     * @param XeroApplication $xeroClient An authentication Xero Client object
-     *
-     * @author Josh Smith <by@joshthe.dev>
-     * @since  1.0.0
-     *
-     * @return void
-     */
-    public function setConnection(XeroApplication $xeroClient)
-    {
-        $this->_xeroClient = $xeroClient;
+        return $xeroClient;
     }
 
     public function sendOrder(Order $order)
@@ -311,7 +275,7 @@ class XeroAPIService extends Component
     public function getAccountByCode($code)
     {
         try {
-            $account = $this->connection->load('Accounting\\Account')->where('Code=="' . $code . '"')->first();
+            $account = $this->getConnection()->load('Accounting\\Account')->where('Code=="' . $code . '"')->first();
             return $account;
         } catch(Exception $e) {
             $response = [

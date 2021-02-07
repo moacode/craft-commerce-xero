@@ -3,6 +3,7 @@
 namespace thejoshsmith\xero\traits;
 
 use League\OAuth2\Client\Provider\AbstractProvider;
+use League\OAuth2\Client\Token\AccessTokenInterface;
 
 /**
  * Xero API Trait
@@ -101,5 +102,21 @@ trait XeroOAuth
     public function getScopes(): string
     {
         return $this->_scopes;
+    }
+
+    /**
+     * Refreshes an access token
+     *
+     * @param string $refreshToken Refresh Token
+     *
+     * @return AccessTokenInterface
+     */
+    public function refreshAccessToken(string $refreshToken): AccessTokenInterface
+    {
+        return $this->getProvider()->getAccessToken(
+            'refresh_token', [
+            'refresh_token' => $refreshToken
+            ]
+        );
     }
 }

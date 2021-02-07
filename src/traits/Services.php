@@ -97,21 +97,4 @@ trait Services
             ]
         );
     }
-
-    /**
-     * Set global dependency injection container definitions
-     *
-     * @return void
-     */
-    private function _setDependencies()
-    {
-        // Automatically inject an authenticated Xero Client
-        // into the the consuming class.
-        try {
-            $xeroClient = $this->getXeroOAuth()::createClient();
-            Craft::$container->set('XeroPHP\Application', $xeroClient);
-        } catch (Exception $e){
-            // Swallow it whole
-        }
-    }
 }

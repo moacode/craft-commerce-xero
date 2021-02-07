@@ -55,7 +55,7 @@ class Plugin extends CraftPlugin
      * The default set of Xero OAuth grant permissions
      * the plugin will request from Xero
      */
-    const XERO_OAUTH_SCOPES = 'openid email profile offline_access accounting.transactions';
+    const XERO_OAUTH_SCOPES = 'openid email profile offline_access accounting.transactions accounting.settings';
 
     // Static Properties
     // =========================================================================
@@ -88,7 +88,6 @@ class Plugin extends CraftPlugin
 
         // Bootstrap the plugin
         $this->_setPluginComponents();
-        $this->_setDependencies();
         $this->_registerEvents();
         $this->_registerCpRoutes();
 

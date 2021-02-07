@@ -65,9 +65,17 @@ class XeroOAuthService extends Component
             throw new Exception('No connection record found');
         }
 
+        $tenant = $connection->tenant;
+        $credential = $connection->credential;
+
+        // Immediately refresh the access token if it's expired
+        if ($credential->isExpired() ) {
+            $credential->refreshAccessToken();
+        }
+
         return new XeroApplication(
-            $connection->credential->accessToken,
-            $connection->tenant->tenantId
+            $credential->accessToken,
+            $tenant->tenantId
         );
     }
 }
