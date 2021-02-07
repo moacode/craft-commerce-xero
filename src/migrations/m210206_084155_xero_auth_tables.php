@@ -1,60 +1,41 @@
 <?php
-/**
- * Xero plugin for Craft CMS 3.x
- *
- * Xero - Craft Commerce 2 plugin
- *
- * @link      https://www.mylesderham.dev/
- * @copyright Copyright (c) 2019 Myles Derham
- */
 
 namespace thejoshsmith\xero\migrations;
 
-use thejoshsmith\xero\records\AccountCode;
-use thejoshsmith\xero\records\Connection;
-use thejoshsmith\xero\records\Credential;
-use thejoshsmith\xero\records\Invoice;
-use thejoshsmith\xero\records\ResourceOwner;
-use thejoshsmith\xero\records\Tenant;
-
-use Craft;
-use craft\config\DbConfig;
-use craft\db\Migration;
 use craft\db\Table;
+use craft\db\Migration;
+use thejoshsmith\xero\records\Tenant;
+use thejoshsmith\xero\records\Connection;
 
-use craft\commerce\db\Table as CommerceTable;
+use thejoshsmith\xero\records\Credential;
+use thejoshsmith\xero\records\AccountCode;
+use thejoshsmith\xero\records\ResourceOwner;
 
-class Install extends Migration
+/**
+ * m210206_084155_xero_auth_tables migration.
+ */
+class m210206_084155_xero_auth_tables extends Migration
 {
-    // Public Methods
-    // =========================================================================
-
+    /**
+     * @inheritdoc
+     */
     public function safeUp()
     {
-        $this->createTables();
-        $this->addForeignKeys();
+        $this->_createTables();
+        $this->_addForeignKeys();
     }
 
+    /**
+     * @inheritdoc
+     */
     public function safeDown()
     {
-        $this->dropTables();
+        echo "m210206_084155_xero_auth_tables cannot be reverted.\n";
+        return false;
     }
 
-    public function createTables()
+    private function _createTables()
     {
-        if (!$this->_tableExists(Invoice::tableName())) {
-            $this->createTable(
-                Invoice::tableName(), [
-                'id' => $this->primaryKey(),
-                'uid' => $this->uid(),
-                'orderId' => $this->integer()->notNull(),
-                'invoiceId' => $this->string()->notNull()->defaultValue(''),
-                'dateCreated' => $this->dateTime()->notNull(),
-                'dateUpdated' => $this->dateTime()->notNull(),
-                ]
-            );
-        }
-
         if (!$this->_tableExists(Tenant::tableName())) {
             $this->createTable(
                 Tenant::tableName(), [
@@ -77,6 +58,7 @@ class Install extends Migration
                     'refreshToken' => $this->text(),
                     'expires' => $this->timestamp()->notNull(),
                     'scope' => $this->text()->notNull(),
+                    'siteId' => $this->integer()->notNull(),
                     'dateCreated' => $this->dateTime()->notNull(),
                     'dateUpdated' => $this->dateTime()->notNull(),
                     'uid' => $this->uid(),
@@ -93,6 +75,7 @@ class Install extends Migration
                     'email' => $this->string(255)->notNull(),
                     'givenName' => $this->string(255)->notNull(),
                     'familyName' => $this->string(255)->notNull(),
+                    'userId' => $this->integer()->notNull(),
                     'dateCreated' => $this->dateTime()->notNull(),
                     'dateUpdated' => $this->dateTime()->notNull(),
                     'uid' => $this->uid(),
@@ -117,25 +100,24 @@ class Install extends Migration
         if (!$this->_tableExists((Connection::tableName()))) {
             $this->createTable(
                 Connection::tableName(), [
-                'id' => $this->primaryKey(),
-                'connectionId' => $this->string(40)->notNull(),
-                'credentialId' => $this->integer()->notNull(),
-                'resourceOwnerId' => $this->integer()->notNull(),
-                'tenantId' => $this->integer()->notNull(),
-                'userId' => $this->integer()->notNull(),
-                'siteId' => $this->integer()->notNull(),
-                'dateCreated' => $this->dateTime()->notNull(),
-                'dateUpdated' => $this->dateTime()->notNull(),
-                'uid' => $this->uid(),
+                    'id' => $this->primaryKey(),
+                    'connectionId' => $this->string(40)->notNull(),
+                    'credentialId' => $this->integer()->notNull(),
+                    'resourceOwnerId' => $this->integer()->notNull(),
+                    'tenantId' => $this->integer()->notNull(),
+                    'userId' => $this->integer()->notNull(),
+                    'siteId' => $this->integer()->notNull(),
+                    'dateCreated' => $this->dateTime()->notNull(),
+                    'dateUpdated' => $this->dateTime()->notNull(),
+                    'uid' => $this->uid(),
                 ]
             );
         }
     }
 
-    public function addForeignKeys()
+    private function _addForeignKeys()
     {
         $schema = Craft::$app->db->schema;
-        $this->addForeignKey('FK_'.$schema->getRawTableName(Invoice::tableName()).'_'.$schema->getRawTableName(CommerceTable::ORDERS), Invoice::tableName(), ['orderId'], CommerceTable::ORDERS, ['id'], 'CASCADE', null);
         $this->addForeignKey('FK_'.$schema->getRawTableName(Connection::tableName()).'_'.$schema->getRawTableName(Credential::tableName()), Connection::tableName(), ['credentialId'], Credential::tableName(), ['id'], 'CASCADE', null);
         $this->addForeignKey('FK_'.$schema->getRawTableName(Connection::tableName()).'_'.$schema->getRawTableName(ResourceOwner::tableName()), Connection::tableName(), ['resourceOwnerId'], ResourceOwner::tableName(), ['id'], 'CASCADE', null);
         $this->addForeignKey('FK_'.$schema->getRawTableName(Connection::tableName()).'_'.$schema->getRawTableName(Tenant::tableName()), Connection::tableName(), ['tenantId'], Tenant::tableName(), ['id'], 'CASCADE', null);
@@ -144,24 +126,10 @@ class Install extends Migration
         $this->addForeignKey('FK_'.$schema->getRawTableName(AccountCode::tableName()).'_'.$schema->getRawTableName(Tenant::tableName()), AccountCode::tableName(), ['tenantId'], Tenant::tableName(), ['id'], 'CASCADE', null);
     }
 
-    public function dropTables()
-    {
-        $this->dropTableIfExists(Connection::tableName());
-        $this->dropTableIfExists(Invoice::tableName());
-        $this->dropTableIfExists(AccountCode::tableName());
-        $this->dropTableIfExists(Tenant::tableName());
-        $this->dropTableIfExists(Credential::tableName());
-        $this->dropTableIfExists(ResourceOwner::tableName());
-    }
-
-    // Private Methods
-    // =========================================================================
-
     /**
      * Returns if the table exists.
      *
-     * @param  string         $tableName
-     * @param  Migration|null $migration
+     * @param  string $tableName
      * @return bool If the table exists.
      */
     private function _tableExists(string $tableName): bool
@@ -174,5 +142,4 @@ class Install extends Migration
 
         return (bool)$table;
     }
-
 }

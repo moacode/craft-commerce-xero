@@ -40,9 +40,22 @@ class Plugin extends CraftPlugin
     // Constants
     // =========================================================================
 
+    /**
+     * The plugin handle
+     */
     const HANDLE = 'xero';
+
+    /**
+     * The default Xero OAuth callback route
+     * used when redirecting back to Craft
+     */
     const XERO_OAUTH_CALLBACK_ROUTE = 'xero/auth';
-    const XERO_OAUTH_SCOPES = 'openid email profile accounting.transactions';
+
+    /**
+     * The default set of Xero OAuth grant permissions
+     * the plugin will request from Xero
+     */
+    const XERO_OAUTH_SCOPES = 'openid email profile offline_access accounting.transactions';
 
     // Static Properties
     // =========================================================================
@@ -51,6 +64,11 @@ class Plugin extends CraftPlugin
      * @var Plugin
      */
     public static $plugin;
+
+    // Public Properties
+    // =========================================================================
+
+    public $schemaVersion = '1.1.0';
 
     // Traits
     // =========================================================================

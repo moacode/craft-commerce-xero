@@ -5,8 +5,17 @@
 
 {% block content %}
     <h1>Xero Organisation</h1>
-    <h2 class="sec">Connect to Xero</h2>
-    {# <p>It looks like you don't have a connected Xero organisation. Click the button below to get started.</p> #}
-    <p>To get started, you'll need to connect your Xero organisation to Craft. Use the button below to start the authentication process.</p>
-    <a class="btn submit" href="{{siteUrl('admin/xero/auth')}}">Connect to Xero</a>
+    {% if not settings.xeroClientId and not settings.xeroClientSecret %}
+        <h2>Further Setup Required</h2>
+        <p>You need to configure this plugin with a Xero app before you can link a Xero organisation.</p>
+        {% if devMode %}
+            <a href="{{cpUrl('xero/settings')}}" class="btn submit">Update Settings</a>
+        {% else %}
+            <em>Please ask your developer to action this.</em>
+        {% endif %}
+    {% else %}
+        <h2>Connect to Xero</h2>
+        <p>To get started, you'll need to connect your Xero organisation to Craft. Use the button below to start the authentication process.</p>
+        <a class="btn submit" href="{{siteUrl('admin/xero/auth')}}">Connect to Xero</a>
+    {% endif %}
 {% endblock %}

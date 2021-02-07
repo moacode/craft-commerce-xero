@@ -18,6 +18,7 @@
 
 namespace thejoshsmith\xero\controllers;
 
+use thejoshsmith\xero\Plugin;
 use thejoshsmith\xero\controllers\BaseController;
 
 use Throwable;
@@ -49,6 +50,9 @@ class OrganisationController extends BaseController
      */
     public function actionIndex(): Response
     {
-        return $this->renderTemplate('xero/organisation/_index');
+        $settings = Plugin::getInstance()->getSettings();
+        return $this->renderTemplate(
+            'xero/organisation/_index', compact('settings')
+        );
     }
 }

@@ -13,9 +13,7 @@ namespace thejoshsmith\xero\records;
 use craft\db\ActiveRecord;
 use craft\commerce\elements\Order;
 
-use yii\db\ActiveQueryInterface;
-
-class InvoiceRecord extends ActiveRecord
+class Invoice extends ActiveRecord
 {
 
     // Public Methods

@@ -20,11 +20,15 @@ namespace thejoshsmith\xero\controllers;
 
 use thejoshsmith\xero\Plugin;
 use thejoshsmith\xero\controllers\BaseController;
+use thejoshsmith\xero\helpers\Xero as XeroHelper;
+
+use Calcinai\OAuth2\Client\Provider\Exception\XeroProviderException;
 
 use Craft;
 use Throwable;
 use yii\web\HttpException;
 use yii\web\Response;
+use yii\web\ServerErrorHttpException;
 
 /**
  * Auth Controller
@@ -41,6 +45,8 @@ class AuthController extends BaseController
     {
         $this->requirePermission('xero-Auth');
         parent::init();
+
+        \Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
     }
 
     /**
@@ -53,7 +59,6 @@ class AuthController extends BaseController
     {
         $xeroApiService = Plugin::getInstance()->getXeroApi();
         $xeroProvider = $xeroApiService->getProvider();
-
         $params = $this->request->getQueryParams();
 
         // Trigger the OAuth flow
@@ -84,24 +89,39 @@ class AuthController extends BaseController
         }
 
         // Try to get an access token (using the authorization code grant)
-        $token = $xeroProvider->getAccessToken(
-            'authorization_code', [
-            'code' => $params['code']
-            ]
-        );
+        try {
 
-        //If you added the openid/profile scopes you can access the authorizing user's identity.
-        $identity = $xeroProvider->getResourceOwner($token);
+            $token = $xeroProvider->getAccessToken(
+                'authorization_code', [
+                'code' => $params['code']
+                ]
+            );
 
-        //Get the tenants that this user is authorized to access
-        $tenants = $xeroProvider->getTenants($token);
+            // Decode information from the access token
+            $jwt = XeroHelper::decodeJwt($token->getToken());
 
-        // Todo, store data in database...
+            // If you added the openid/profile scopes you can access the authorizing user's identity.
+            $identity = $xeroProvider->getResourceOwner($token);
+
+            // Get the tenants that this user is authorized to access
+            // and filter them for this authentication event
+            $tenants = $xeroProvider->getTenants(
+                $token, [
+                'authEventId' => $jwt->authentication_event_id
+                ]
+            );
+
+            // Save the connection data
+            $connections = $xeroApiService->saveXeroConnection($identity, $token, $tenants);
+
+        } catch (XeroProviderException $xpe) {
+            throw new ServerErrorHttpException($xpe->getMessage());
+        }
 
         return $this->asJson(
             [
-            'tenants' => $tenants,
-            'identity' => $identity
+                'result' => 'success',
+                'data' => $connections
             ]
         );
     }

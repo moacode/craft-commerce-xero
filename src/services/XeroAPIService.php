@@ -11,9 +11,10 @@
 namespace thejoshsmith\xero\services;
 
 use thejoshsmith\xero\records\InvoiceRecord;
-use thejoshsmith\xero\traits\XeroAPI;
 
-use League\OAuth2\Client\Provider\AbstractProvider;
+use thejoshsmith\xero\interfaces\XeroAPI as XeroAPIInterface;
+use thejoshsmith\xero\traits\XeroAPI;
+use thejoshsmith\xero\traits\XeroAPIStorage;
 
 use XeroPHP\Models\Accounting\Contact;
 use XeroPHP\Models\Accounting\Invoice;
@@ -30,13 +31,19 @@ use craft\commerce\elements\Order;
  * @author  Josh Smith <hey@joshthe.dev>
  * @package Xero
  */
-class XeroAPIService extends Component
+class XeroAPIService extends Component// implements XeroAPIInterface
 {
     /**
      * Use the XeroAPI trait to handle
      * Xero authentication and API requests
      */
     use XeroAPI;
+
+    /**
+     * Use the XeroAPIStorage trait to handle
+     * the persistance and retrieval of tokens to/from the DB
+     */
+    use XeroAPIStorage;
 
     /**
      * Defines the number of decimals to use
@@ -95,7 +102,7 @@ class XeroAPIService extends Component
                 $contact->save();
             }
             return $contact;
-        } catch(Exception $e) {
+        } catch(\Exception $e) {
             $response = [
                 'message' => $e->getMessage(),
                 'code' => $e->getCode()
