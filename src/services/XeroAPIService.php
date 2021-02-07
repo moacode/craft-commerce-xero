@@ -13,9 +13,8 @@ namespace thejoshsmith\xero\services;
 use thejoshsmith\xero\records\InvoiceRecord;
 
 use thejoshsmith\xero\interfaces\XeroAPI as XeroAPIInterface;
-use thejoshsmith\xero\traits\XeroAPI;
-use thejoshsmith\xero\traits\XeroAPIStorage;
 
+use XeroPHP\Application as XeroApplication;
 use XeroPHP\Models\Accounting\Contact;
 use XeroPHP\Models\Accounting\Invoice;
 use XeroPHP\Models\Accounting\Invoice\LineItem;
@@ -25,26 +24,15 @@ use XeroPHP\Models\Accounting\Account;
 use Craft;
 use craft\base\Component;
 use craft\commerce\elements\Order;
+use yii\base\Exception;
 
 /**
  * @author  Myles Derham
  * @author  Josh Smith <hey@joshthe.dev>
  * @package Xero
  */
-class XeroAPIService extends Component// implements XeroAPIInterface
+class XeroAPIService extends Component
 {
-    /**
-     * Use the XeroAPI trait to handle
-     * Xero authentication and API requests
-     */
-    use XeroAPI;
-
-    /**
-     * Use the XeroAPIStorage trait to handle
-     * the persistance and retrieval of tokens to/from the DB
-     */
-    use XeroAPIStorage;
-
     /**
      * Defines the number of decimals to use
      *
@@ -52,8 +40,66 @@ class XeroAPIService extends Component// implements XeroAPIInterface
      */
     private $decimals = 2;
 
+    /**
+     * Defines the authenticated Xero client
+     *
+     * @var XeroApplication
+     */
+    private $_xeroClient;
+
     // Public Methods
     // =========================================================================
+
+    /**
+     * Class constructor
+     * Intiaises the Xero Client
+     *
+     * @param XeroApplication $xeroClient Authenticated Xero Client object
+     *
+     * @author Josh Smith <by@joshthe.dev>
+     * @since  1.0.0
+     *
+     * @return void
+     */
+    public function __construct(XeroApplication $xeroClient = null)
+    {
+        if ($xeroClient instanceof XeroApplication) {
+            $this->_xeroClient = $xeroClient;
+        }
+    }
+
+    /**
+     * Returns the Xero client connection
+     *
+     * @author Josh Smith <by@joshthe.dev>
+     * @since  1.0.0
+     *
+     * @throws Exception
+     * @return XeroApplication
+     */
+    public function getConnection(): XeroApplication
+    {
+        if (empty($this->_xeroClient)) {
+            throw new Exception('The Xero Client isn\'t initialised.');
+        }
+
+        return $this->_xeroClient;
+    }
+
+    /**
+     * Sets the authenticated Xero Client connection object
+     *
+     * @param XeroApplication $xeroClient An authentication Xero Client object
+     *
+     * @author Josh Smith <by@joshthe.dev>
+     * @since  1.0.0
+     *
+     * @return void
+     */
+    public function setConnection(XeroApplication $xeroClient)
+    {
+        $this->_xeroClient = $xeroClient;
+    }
 
     public function sendOrder(Order $order)
     {

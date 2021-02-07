@@ -124,6 +124,9 @@ class Install extends Migration
                 'tenantId' => $this->integer()->notNull(),
                 'userId' => $this->integer()->notNull(),
                 'siteId' => $this->integer()->notNull(),
+                'status' => $this->enum('status', ['enabled', 'disabled', 'expired'])
+                    ->notNull()
+                    ->defaultValue('disabled'),
                 'dateCreated' => $this->dateTime()->notNull(),
                 'dateUpdated' => $this->dateTime()->notNull(),
                 'uid' => $this->uid(),

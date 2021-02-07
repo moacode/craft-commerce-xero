@@ -23,6 +23,8 @@ use craft\helpers\UrlHelper;
 
 use thejoshsmith\xero\Plugin;
 use thejoshsmith\xero\services\XeroAPIService;
+use thejoshsmith\xero\services\XeroOAuthService;
+use yii\base\Exception;
 
 /**
  * Services Trait
@@ -44,6 +46,16 @@ trait Services
     public function getXeroApi(): XeroAPIService
     {
         return $this->get('api');
+    }
+
+    /**
+     * Returns the Xero OAuth Service
+     *
+     * @return XeroOAuthService
+     */
+    public function getXeroOAuth(): XeroOAuthService
+    {
+        return $this->get('oauth');
     }
 
     // Private Methods
@@ -76,12 +88,30 @@ trait Services
 
         $this->setComponents(
             [
-                'api' => [
-                    'class' => XeroAPIService::class,
+                'api' => XeroAPIService::class,
+                'oauth' => [
+                    'class' => XeroOAuthService::class,
                     'scopes' => Plugin::XERO_OAUTH_SCOPES,
-                    'provider' => $provider
+                    'provider' => $provider,
                 ]
             ]
         );
+    }
+
+    /**
+     * Set global dependency injection container definitions
+     *
+     * @return void
+     */
+    private function _setDependencies()
+    {
+        // Automatically inject an authenticated Xero Client
+        // into the the consuming class.
+        try {
+            $xeroClient = $this->getXeroOAuth()::createClient();
+            Craft::$container->set('XeroPHP\Application', $xeroClient);
+        } catch (Exception $e){
+            // Swallow it whole
+        }
     }
 }

@@ -57,15 +57,15 @@ class AuthController extends BaseController
      */
     public function actionIndex(): Response
     {
-        $xeroApiService = Plugin::getInstance()->getXeroApi();
-        $xeroProvider = $xeroApiService->getProvider();
+        $xeroOAuthService = Plugin::getInstance()->getXeroOAuth();
+        $xeroProvider = $xeroOAuthService->getProvider();
         $params = $this->request->getQueryParams();
 
         // Trigger the OAuth flow
         if (!isset($params['code']) ) {
             $authUrl = $xeroProvider->getAuthorizationUrl(
                 [
-                'scope' => $xeroApiService->getScopes()
+                'scope' => $xeroOAuthService->getScopes()
                 ]
             );
 
@@ -112,7 +112,7 @@ class AuthController extends BaseController
             );
 
             // Save the connection data
-            $connections = $xeroApiService->saveXeroConnection($identity, $token, $tenants);
+            $connections = $xeroOAuthService->saveXeroConnection($identity, $token, $tenants);
 
         } catch (XeroProviderException $xpe) {
             throw new ServerErrorHttpException($xpe->getMessage());

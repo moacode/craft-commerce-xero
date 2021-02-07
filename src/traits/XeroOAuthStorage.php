@@ -3,7 +3,6 @@
 namespace thejoshsmith\xero\traits;
 
 use Craft;
-use craft\base\Model;
 
 use League\OAuth2\Client\Token\AccessTokenInterface;
 use Calcinai\OAuth2\Client\XeroResourceOwner;
@@ -13,13 +12,10 @@ use thejoshsmith\xero\records\Credential;
 use thejoshsmith\xero\records\ResourceOwner;
 use thejoshsmith\xero\records\Tenant;
 
-use yii\db\ActiveRecord;
-use yii\db\Exception;
-
 /**
  * Xero API Storage Trait
  *
- * Provides methods to interface with storing Xero API credentials
+ * Provides methods to interface with storing Xero OAuth API credentials
  *
  * PHP version 7.4
  *
@@ -43,7 +39,7 @@ use yii\db\Exception;
   * @link     https://joshthe.dev
   * @since    1.0.0
   */
-trait XeroAPIStorage
+trait XeroOAuthStorage
 {
     /**
      * Persists a Xero connection including the identity,
@@ -102,11 +98,6 @@ trait XeroAPIStorage
 
 
         return $connections;
-    }
-
-    public function getCredentialsByTenantId(int $tenantId): Credential
-    {
-
     }
 
     public function saveConnection(

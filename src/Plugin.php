@@ -88,6 +88,7 @@ class Plugin extends CraftPlugin
 
         // Bootstrap the plugin
         $this->_setPluginComponents();
+        $this->_setDependencies();
         $this->_registerEvents();
         $this->_registerCpRoutes();
 

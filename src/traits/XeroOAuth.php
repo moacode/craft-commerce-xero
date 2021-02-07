@@ -7,7 +7,7 @@ use League\OAuth2\Client\Provider\AbstractProvider;
 /**
  * Xero API Trait
  *
- * Provides methods to interface with the Xero API
+ * Provides methods to interface with the Xero OAuth API
  *
  * PHP version 7.4
  *
@@ -31,7 +31,7 @@ use League\OAuth2\Client\Provider\AbstractProvider;
   * @link     https://joshthe.dev
   * @since    1.0.0
   */
-trait XeroAPI
+trait XeroOAuth
 {
     /**
      * Define Xero OAuth permissions
