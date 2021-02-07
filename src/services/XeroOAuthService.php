@@ -35,8 +35,9 @@ class XeroOAuthService extends Component
     /**
      * Creates an authenticated Xero client
      *
-     * @param integer $siteId Defaults to the current site ID
-     * @param string  $status Defaults to the connection enabled status
+     * @param integer $siteId  Defaults to the current site ID
+     * @param string  $status  Defaults to the connection enabled status
+     * @param bool    $refresh Whether to refresh the access token immediately
      *
      * @author Josh Smith <by@joshthe.dev>
      * @since  1.0.0
@@ -46,7 +47,8 @@ class XeroOAuthService extends Component
      */
     public static function createClient(
         int $siteId = null,
-        string $status = Connection::STATUS_ENABLED
+        string $status = Connection::STATUS_ENABLED,
+        bool $refresh = true
     ): XeroApplication {
 
         if (empty($siteId)) {
@@ -69,7 +71,7 @@ class XeroOAuthService extends Component
         $credential = $connection->credential;
 
         // Immediately refresh the access token if it's expired
-        if ($credential->isExpired() ) {
+        if ($credential->isExpired() && $refresh ) {
             $credential->refreshAccessToken();
         }
 
