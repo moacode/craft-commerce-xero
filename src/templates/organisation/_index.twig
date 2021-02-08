@@ -1,11 +1,20 @@
 {% extends "_layouts/cp" %}
+{% import "_includes/forms" as forms %}
 
 {% set selectedSubnavItem = 'organisation' %}
+
 {% set docTitle = 'Xero Organisation' %}
+{% set title = 'Xero Organisation' %}
+
+{% set fullPageForm = true %}
 
 {% block content %}
-    <h1>Xero Organisation</h1>
-    {% if not settings.xeroClientId and not settings.xeroClientSecret %}
+    {{ actionInput('xero/organisation/save-settings') }}
+    {{ redirectInput('xero/organisation') }}
+
+    {# Xero isn't setup? Direct the user to do that step first #}
+    {% if not pluginSettings.xeroClientId and not pluginSettings.xeroClientSecret %}
+
         <h2>Further Setup Required</h2>
         <p>You need to configure this plugin with a Xero app before you can link a Xero organisation.</p>
         {% if devMode %}
@@ -13,9 +22,139 @@
         {% else %}
             <em>Please ask your developer to action this.</em>
         {% endif %}
-    {% else %}
+
+    {# No connections? Provide a button to setup the first connection #}
+    {% elseif not connections|length %}
+
         <h2>Connect to Xero</h2>
         <p>To get started, you'll need to connect your Xero organisation to Craft. Use the button below to start the authentication process.</p>
         <a class="btn submit" href="{{siteUrl('admin/xero/auth')}}">Connect to Xero</a>
+
+    {% else %}
+        {# Create a set of connection options #}
+        {% set connectionOptions = [{label: 'Please Select', value: null, disabled: true}] |
+            merge(connections|map(connection => {
+                label: connection.tenant.tenantName,
+                value: connection.id
+            })
+        ) %}
+
+        <h2>Current Organisation</h2>
+        {% if connection %}
+            <p>You're currently connected to the <strong>{{connection.tenant.tenantName}}</strong>.</p>
+        {% else %}
+            <p class="warning with-icon">You need to select an organisation before Commerce will send financials to Xero.</p>
+        {% endif %}
+
+        {{ forms.selectField({
+            label: 'Change Organisation',
+            name: 'connectionId',
+            instructions: 'Select the Xero organisation Commerce sends financials to',
+            options: connectionOptions,
+            value: orgSettings.connectionId,
+            errors: orgSettings.getErrors('connectionId'),
+        }) }}
+
+        {{ forms.lightswitchField({
+            label: 'Create Payments?',
+            instructions: 'If enabled, orders marked as paid will have a Payment sent to Xero.',
+            id: 'createPayments',
+            name: 'createPayments',
+            on: orgSettings.createPayments,
+            errors: orgSettings.getErrors('createPayments'),
+
+        }) }}
+        {{ forms.lightswitchField({
+            label: 'Update Xero inventory?',
+            instructions: 'Using product SKUs as the Xero Item Code, inventory levels in Xero will be updated (if setup).',
+            warning: 'This operation will fail if the item code deosn\'t exist in Xero',
+            id: 'updateInventory',
+            name: 'updateInventory',
+            on: orgSettings.updateInventory,
+            errors: orgSettings.getErrors('updateInventory'),
+        }) }}
+
+        {% if connection %}
+            {# Get a list of all account codes and map 'em for the select boxes. #}
+            {% set accountOptions = [{label: 'Please select an account', value: null}] |
+                merge(craft.xero.api.accounts|map(account => {
+                    label: account.Name ~ ' - ' ~ account.Code ~ ' - ' ~ account.Type,
+                    value: account.Code
+                })
+            ) %}
+
+            <hr>
+
+            <h2>Chart of Accounts</h2>
+            {{ forms.selectField({
+                label: "Sales Revenue"|t('xero'),
+                id: 'accountSales',
+                name: 'accountSales',
+                instructions: 'Sales revenue maps to this account',
+                options: accountOptions,
+                required: true,
+                value: orgSettings.accountSales,
+                errors: orgSettings.getErrors('accountSales'),
+            }) }}
+
+            {{ forms.selectField({
+                label: "Accounts Receivable"|t('xero'),
+                id: 'accountReceivable',
+                name: 'accountReceivable',
+                instructions: 'Successfully paid orders are mapped to this account',
+                options: accountOptions,
+                required: true,
+                value: orgSettings.accountReceivable,
+                errors: orgSettings.getErrors('accountReceivable'),
+            }) }}
+
+            {{ forms.selectField({
+                label: "Shipping & Delivery"|t('xero'),
+                id: 'accountShipping',
+                name: 'accountShipping',
+                instructions: 'Shipping costs map to this account',
+                options: accountOptions,
+                required: true,
+                value: orgSettings.accountShipping,
+                errors: orgSettings.getErrors('accountShipping'),
+            }) }}
+
+            {{ forms.selectField({
+                label: "Rounding"|t('xero'),
+                id: 'accountRounding',
+                name: 'accountRounding',
+                instructions: 'Rounding adjustments map to this account',
+                options: accountOptions,
+                required: true,
+                value: orgSettings.accountRounding,
+                errors: orgSettings.getErrors('accountRounding'),
+            }) }}
+
+            {{ forms.selectField({
+                label: "Discounts"|t('xero'),
+                id: 'accountDiscounts',
+                name: 'accountDiscounts',
+                instructions: 'Discount totals map to this account',
+                options: accountOptions,
+                value: orgSettings.accountDiscounts,
+                errors: orgSettings.getErrors('accountDiscounts'),
+            }) }}
+
+            {{ forms.selectField({
+                label: "Additional Fees"|t('xero'),
+                id: 'accountAdditionalFees',
+                name: 'accountAdditionalFees',
+                instructions: 'Additional Fees and Adjustments map to this account',
+                options: accountOptions,
+                value: orgSettings.accountAdditionalFees,
+                errors: orgSettings.getErrors('accountAdditionalFees'),
+            }) }}
+
+        {% endif %}
     {% endif %}
+{% endblock %}
+
+{% block actionButton %}
+    <a href="{{cpUrl('xero/connections')}}" class="btn sec">Manage Connections</a>
+    {{ parent() }}
 {% endblock %}

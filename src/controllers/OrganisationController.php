@@ -18,12 +18,16 @@
 
 namespace thejoshsmith\xero\controllers;
 
-use thejoshsmith\xero\Plugin;
-use thejoshsmith\xero\controllers\BaseController;
-
 use Throwable;
-use yii\web\HttpException;
 use yii\web\Response;
+use yii\web\HttpException;
+use thejoshsmith\xero\Plugin;
+use yii\web\BadRequestHttpException;
+use thejoshsmith\xero\records\Connection;
+use thejoshsmith\xero\controllers\BaseController;
+use thejoshsmith\xero\models\OrganisationSettings as OrganisationSettingsModel;
+use Craft;
+use yii\web\NotFoundHttpException;
 
 /**
  * Organisation Controller
@@ -46,13 +50,70 @@ class OrganisationController extends BaseController
      * Index of tenants
      *
      * @return Response
-     * @throws Throwable
      */
-    public function actionIndex(): Response
+    public function actionIndex(OrganisationSettingsModel $orgSettings = null)
     {
-        $settings = Plugin::getInstance()->getSettings();
+        $pluginSettings = Plugin::getInstance()->getSettings();
+        $xeroConnections = Plugin::getInstance()->getXeroConnections();
+
+        $connection = $xeroConnections->getCurrentConnection();
+        $connections = $xeroConnections->getAllConnections();
+
+        // Create a new settings model
+        if (empty($orgSettings)) {
+            $orgSettings
+                = OrganisationSettingsModel::fromConnection($connection);
+        }
+
         return $this->renderTemplate(
-            'xero/organisation/_index', compact('settings')
+            'xero/organisation/_index', compact(
+                'pluginSettings',
+                'orgSettings',
+                'connection',
+                'connections'
+            )
         );
+    }
+
+    /**
+     * Saves organisation settings
+     *
+     * @return void
+     */
+    public function actionSaveSettings()
+    {
+        $this->requirePostRequest();
+
+        $data = $this->request->getBodyParams();
+
+        $orgSettings = new OrganisationSettingsModel();
+        $orgSettings->attributes = $data;
+
+        if (! $orgSettings->validate()) {
+            $this->setFailFlash(Plugin::t('Couldn’t save organisation settings.'));
+
+            Craft::$app->getUrlManager()->setRouteParams(
+                [
+                'orgSettings' => $orgSettings
+                ]
+            );
+
+            return null;
+        }
+
+        $connectionRecord = Connection::find()
+            ->where(['id' => $orgSettings->connectionId])
+            ->one();
+
+        if (empty($connectionRecord)) {
+            throw new NotFoundHttpException('Unable to find connection');
+        }
+
+        // Assign settings to be serialized and save it.
+        $connectionRecord->settings = $orgSettings->getSettings();
+        $connectionRecord->save();
+
+        $this->setSuccessFlash(Plugin::t('Organisation Settings saved.'));
+        $this->redirectToPostedUrl();
     }
 }

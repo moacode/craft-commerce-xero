@@ -22,9 +22,9 @@ use Craft;
 use craft\helpers\UrlHelper;
 
 use thejoshsmith\xero\Plugin;
-use thejoshsmith\xero\services\XeroAPIService;
-use thejoshsmith\xero\services\XeroOAuthService;
-use yii\base\Exception;
+use thejoshsmith\xero\services\XeroAPI as XeroAPIService;
+use thejoshsmith\xero\services\XeroOAuth as XeroOAuthService;
+use thejoshsmith\xero\services\XeroConnections as XeroConnectionsService;
 
 /**
  * Services Trait
@@ -56,6 +56,16 @@ trait Services
     public function getXeroOAuth(): XeroOAuthService
     {
         return $this->get('oauth');
+    }
+
+    /**
+     * Returns the Xero Connections Service
+     *
+     * @return XeroConnectionsService
+     */
+    public function getXeroConnections(): XeroConnectionsService
+    {
+        return $this->get('connections');
     }
 
     // Private Methods
@@ -93,7 +103,8 @@ trait Services
                     'class' => XeroOAuthService::class,
                     'scopes' => Plugin::XERO_OAUTH_SCOPES,
                     'provider' => $provider,
-                ]
+                ],
+                'connections' => XeroConnectionsService::class
             ]
         );
     }

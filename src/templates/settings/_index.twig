@@ -2,18 +2,17 @@
 
 {% set selectedSubnavItem = 'settings' %}
 {% set docTitle = 'Xero Settings' %}
+{% set title = 'Settings' %}
+{% set fullPageForm = true %}
 
 {% import "_includes/forms" as forms %}
 
 {% block content %}
-
-    <h2>{{ "Xero Settings"|t('xero') }}</h2>
     <form action="" method="post" accept-charset="UTF-8" data-saveshortcut>
         <input type="hidden" name="action" value="xero/settings/save-settings">
         {{ redirectInput('xero/settings') }}
         {{ csrfInput() }}
 
-        <h3>{{ 'App Details'|t('xero') }}</h3>
         {{ forms.autosuggestField({
             first: true,
             label: 'Client ID'|t('xero'),
@@ -52,8 +51,6 @@
             suggestEnvVars: true,
             autofocus: true,
         }) }}
-
-        <input type="submit" class="btn submit" value="{{ 'Save'|t('xero') }}">
     </form>
 
 {% endblock %}

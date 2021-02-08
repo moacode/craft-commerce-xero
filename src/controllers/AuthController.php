@@ -25,6 +25,7 @@ use thejoshsmith\xero\helpers\Xero as XeroHelper;
 use Calcinai\OAuth2\Client\Provider\Exception\XeroProviderException;
 
 use Craft;
+use craft\helpers\UrlHelper;
 use Throwable;
 use yii\web\HttpException;
 use yii\web\Response;
@@ -60,6 +61,12 @@ class AuthController extends BaseController
         $xeroOAuthService = Plugin::getInstance()->getXeroOAuth();
         $xeroProvider = $xeroOAuthService->getProvider();
         $params = $this->request->getQueryParams();
+
+        // User cancelled the flow...
+        if (isset($params['error']) && $params['error'] === 'access_denied') {
+            Craft::$app->getSession()->setNotice('Xero connection was cancelled');
+            return $this->redirect(UrlHelper::cpUrl('xero'));
+        }
 
         // Trigger the OAuth flow
         if (!isset($params['code']) ) {
@@ -118,11 +125,8 @@ class AuthController extends BaseController
             throw new ServerErrorHttpException($xpe->getMessage());
         }
 
-        return $this->asJson(
-            [
-                'result' => 'success',
-                'data' => $connections
-            ]
-        );
+        Craft::$app->getSession()->setNotice('Xero connection successfully saved');
+
+        return $this->redirect(UrlHelper::cpUrl('xero'));
     }
 }

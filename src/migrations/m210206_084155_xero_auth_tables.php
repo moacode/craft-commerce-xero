@@ -107,6 +107,7 @@ class m210206_084155_xero_auth_tables extends Migration
                     'tenantId' => $this->integer()->notNull(),
                     'userId' => $this->integer()->notNull(),
                     'siteId' => $this->integer()->notNull(),
+                    'settings' => $this->longText()->notNull(),
                     'status' => $this->enum(
                         'status', [
                             'enabled', 'disabled', 'expired'

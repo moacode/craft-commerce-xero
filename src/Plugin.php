@@ -18,16 +18,18 @@ use thejoshsmith\xero\models\Settings as SettingsModel;
 use thejoshsmith\xero\traits\Routes;
 use thejoshsmith\xero\traits\Services;
 use thejoshsmith\xero\web\assets\SendToXeroAsset;
+use thejoshsmith\xero\web\twig\CraftVariableBehavior;
 
 use Craft;
 use craft\base\Plugin as CraftPlugin;
-use craft\events\TemplateEvent;
-use craft\web\View;
 use craft\events\RegisterUrlRulesEvent;
+use craft\events\TemplateEvent;
 use craft\web\UrlManager;
-use craft\commerce\elements\Order;
-
+use craft\web\View;
+use craft\web\twig\variables\CraftVariable;
 use yii\base\Event;
+
+use craft\commerce\elements\Order;
 
 /**
  * Class Xero
@@ -90,6 +92,7 @@ class Plugin extends CraftPlugin
         $this->_setPluginComponents();
         $this->_registerEvents();
         $this->_registerCpRoutes();
+        $this->_registerVariables();
 
         Craft::info(
             self::t(
@@ -125,6 +128,13 @@ class Plugin extends CraftPlugin
             $ret['subnav']['organisation'] = [
                 'label' => self::t('Organisation'),
                 'url' => 'xero/organisation'
+            ];
+        }
+
+        if (Craft::$app->getUser()->checkPermission('xero-manageConnections')) {
+            $ret['subnav']['connections'] = [
+                'label' => self::t('Connections'),
+                'url' => 'xero/connections'
             ];
         }
 
@@ -217,6 +227,21 @@ class Plugin extends CraftPlugin
                         'orderID' => $e->sender->id
                         ]
                     )
+                );
+            }
+        );
+    }
+
+    /**
+     * Register this plugin's template variable.
+     */
+    private function _registerVariables()
+    {
+        Event::on(
+            CraftVariable::class, CraftVariable::EVENT_INIT, function (Event $event) {
+                $variable = $event->sender;
+                $variable->attachBehavior(
+                    self::HANDLE, CraftVariableBehavior::class
                 );
             }
         );

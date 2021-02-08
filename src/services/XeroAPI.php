@@ -4,8 +4,8 @@
  *
  * Xero - Craft Commerce 2 plugin
  *
+ * @copyright 2019 Myles Derham
  * @link      https://www.mylesderham.dev/
- * @copyright Copyright (c) 2019 Myles Derham
  */
 
 namespace thejoshsmith\xero\services;
@@ -24,6 +24,7 @@ use XeroPHP\Models\Accounting\Account;
 use Craft;
 use craft\base\Component;
 use craft\commerce\elements\Order;
+use XeroPHP\Remote\Collection;
 use yii\base\Exception;
 
 /**
@@ -31,8 +32,10 @@ use yii\base\Exception;
  * @author  Josh Smith <hey@joshthe.dev>
  * @package Xero
  */
-class XeroAPIService extends Component
+class XeroAPI extends Component
 {
+    const CACHE_DURATION = 3600; // 1 hour
+
     /**
      * Defines the number of decimals to use
      *
@@ -60,6 +63,11 @@ class XeroAPIService extends Component
                 ->createClient();
         } catch (Exception $e) {
             throw new Exception('Unable to get Xero Client, check there\'s an active connection.');
+
+            Craft::error(
+                $e->getMessage(),
+                __METHOD__
+            );
         }
 
         return $xeroClient;
@@ -272,6 +280,30 @@ class XeroAPIService extends Component
         return false;
     }
 
+    public function getAccounts()
+    {
+        $cacheKey = 'xero-accounts';
+
+        try {
+            $connection = $this->getConnection();
+            $cache = Craft::$app->getCache();
+
+            $accounts = $this->_unserialize(Account::class, $cache->get($cacheKey));
+            if (empty($accounts)) {
+                $accounts = $connection->load(Account::class)->execute();
+                $cache->set($cacheKey, $this->_serialize($accounts), self::CACHE_DURATION);
+            }
+
+        } catch(Exception $e) {
+            Craft::error(
+                $e->getMessage(),
+                __METHOD__
+            );
+        }
+
+        return $accounts ?? [];
+    }
+
     public function getAccountByCode($code)
     {
         try {
@@ -298,5 +330,54 @@ class XeroAPIService extends Component
             return true;
         }
         return false;
+    }
+
+    /**
+     * Serializes a Xero collection of models
+     * Note: this is necessary as each model has a reference to the
+     * Guzzle client which contains anonymous functions, and therefore
+     * we can't serialize it into cache "as is".
+     *
+     * @param Collection $collection A collection of models
+     *
+     * @see https://github.com/calcinai/xero-php/issues/734
+     *
+     * @return array
+     */
+    private function _serialize(Collection $collection): array
+    {
+        $serialized = [];
+
+        foreach ($collection as $model) {
+            $serialized[] = $model->toStringArray();
+        }
+
+        return $serialized;
+    }
+
+    /**
+     * Used to unserialize cached data
+     *
+     * @param string $class      Name of the Xero API model class
+     * @param array  $collection Collection of data to unserialize
+     *
+     * @see https://github.com/calcinai/xero-php/issues/734
+     *
+     * @return Collection|null
+     */
+    private function _unserialize(string $class, $collection): ?Collection
+    {
+        if (!is_iterable($collection)) {
+            return null;
+        }
+
+        $unserialized = [];
+        foreach ($collection as $data) {
+            $model = new $class($this->getConnection());
+            $model->fromStringArray($data);
+            $unserialized[] = $model;
+        }
+
+        return new Collection($unserialized);
     }
 }
