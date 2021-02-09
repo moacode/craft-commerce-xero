@@ -1,0 +1,80 @@
+{% extends "_layouts/cp" %}
+{% import "_includes/forms" as forms %}
+
+{% set selectedSubnavItem = 'connections' %}
+
+{% set docTitle = 'Xero Connections' %}
+{% set title = 'Xero Connections' %}
+{% set fullPageForm = true %}
+
+{% block content %}
+    {{ actionInput('xero/organisation/save-settings') }}
+    {{ redirectInput('xero/organisation') }}
+
+    {# Xero isn't setup? Direct the user to do that step first #}
+    {% if not pluginSettings.xeroClientId and not pluginSettings.xeroClientSecret %}
+
+        <h2>Further Setup Required</h2>
+        <p>You need to configure this plugin with a Xero app before you can link a Xero organisation.</p>
+        {% if devMode %}
+            <a href="{{cpUrl('xero/settings')}}" class="btn submit">Update Settings</a>
+        {% else %}
+            <em>Please ask your developer to action this.</em>
+        {% endif %}
+
+    {# No connections? Provide a button to setup the first connection #}
+    {% elseif not connections|length %}
+
+        <h2>Connect to Xero</h2>
+        <p>To get started, you'll need to connect your Xero organisation to Craft. Use the button below to start the authentication process.</p>
+        <a class="btn submit" href="{{siteUrl('admin/xero/auth')}}">Connect to Xero</a>
+
+    {% else %}
+        <h2>Connections</h2>
+        <p>A list of available connections to Xero.</p>
+        {% set connectionRows = [] %}
+
+        {% for connection in connections %}
+            {# {% set siteSettings = categoryGroup.siteSettings[site.id] ?? null %} #}
+            {# {% if siteSettings %}
+                {% for attribute, errors in siteSettings.getErrors() %}
+                    {% set siteErrors = siteErrors|merge(errors) %}
+                {% endfor %}
+            {% endif %} #}
+            {% set connectionRows = connectionRows|merge({
+                (connection.tenant.tenantName): {
+                    heading: connection.tenant.tenantName|t('site')|e,
+                    status: {
+                        value: connection.status,
+                    },
+                }
+            }) %}
+        {% endfor %}
+
+        {{ forms.editableTableField({
+            id: 'sites',
+            name: 'sites',
+            static: true,
+            cols: {
+                heading: {
+                    type: 'heading',
+                    heading: "Organisation"|t('xero'),
+                    class: 'thin'
+                },
+                status: {
+                    type: null,
+                    heading: "Status"|t('xero'),
+                    info: "What category URIs should look like for the site."|t('app'),
+                    placeholder: "Leave blank if categories don’t have URLs"|t('app'),
+                    code: false
+                },
+            }|filter,
+            rows: connectionRows,
+            staticRows: true,
+        }) }}
+    {% endif %}
+{% endblock %}
+
+{% block submitButton %}
+    <a class="btn submit icon add" href="{{siteUrl('admin/xero/auth')}}">Connect to Xero</a>
+{% endblock %}

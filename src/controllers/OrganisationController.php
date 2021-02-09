@@ -8,7 +8,7 @@
  *
  * @category  Controllers
  * @package   CraftCommerceXero
- * @author    Josh Smith <hey@joshthe.dev>
+ * @author    Josh Smith <by@joshthe.dev>
  * @copyright 2021 Josh Smith
  * @license   Proprietary https://github.com/thejoshsmith/craft-commerce-xero/blob/master/LICENSE.md
  * @version   GIT: $Id$
@@ -60,7 +60,7 @@ class OrganisationController extends BaseController
         $connections = $xeroConnections->getAllConnections();
 
         // Create a new settings model
-        if (empty($orgSettings)) {
+        if (empty($orgSettings) && $connection) {
             $orgSettings
                 = OrganisationSettingsModel::fromConnection($connection);
         }
@@ -86,8 +86,15 @@ class OrganisationController extends BaseController
 
         $data = $this->request->getBodyParams();
 
+        $xeroConnections = Plugin::getInstance()->getXeroConnections();
+        $connection = $xeroConnections->getCurrentConnection();
+
         $orgSettings = new OrganisationSettingsModel();
         $orgSettings->attributes = $data;
+
+        if (empty($connection)) {
+            $orgSettings->scenario = OrganisationSettingsModel::SCENARIO_DISABLED_CONNECTION;
+        }
 
         if (! $orgSettings->validate()) {
             $this->setFailFlash(Plugin::t('Couldn’t save organisation settings.'));
@@ -109,8 +116,18 @@ class OrganisationController extends BaseController
             throw new NotFoundHttpException('Unable to find connection');
         }
 
-        // Assign settings to be serialized and save it.
-        $connectionRecord->settings = $orgSettings->getSettings();
+        // Disable all other connections as only
+        // one can be active per site at any one time
+        $xeroConnections->disableAllConnections();
+        $connectionRecord->refresh();
+
+        // Only serialize settings if this isn't a disabled connection
+        if ($orgSettings->scenario !== OrganisationSettingsModel::SCENARIO_DISABLED_CONNECTION) {
+            $connectionRecord->settings = $orgSettings->getSettings();
+        }
+
+        // Enable the connection and save it.
+        $connectionRecord->status = Connection::STATUS_ENABLED;
         $connectionRecord->save();
 
         $this->setSuccessFlash(Plugin::t('Organisation Settings saved.'));

@@ -77,6 +77,28 @@ class XeroConnections extends Component
     }
 
     /**
+     * Disables all connections for a particular site
+     *
+     * @param integer $siteId Site ID
+     *
+     * @return void
+     */
+    public function disableAllConnections(int $siteId = null): void
+    {
+        if (empty($siteId)) {
+            $siteId = Craft::$app->getSites()->getCurrentSite()->id;
+        }
+
+        Connection::updateAll(
+            [
+            'status' => Connection::STATUS_DISABLED
+            ], [
+            'siteId' => $siteId
+            ]
+        );
+    }
+
+    /**
      * Returns a connection query filtered for the current site
      *
      * @param integer $siteId Site ID

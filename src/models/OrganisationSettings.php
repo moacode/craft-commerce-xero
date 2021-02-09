@@ -7,6 +7,13 @@ use thejoshsmith\xero\records\Connection;
 
 class OrganisationSettings extends Model
 {
+    /**
+     * Define the disabled connection scenario
+     * This is invoked when setting an active organisation
+     * for the first time
+     */
+    const SCENARIO_DISABLED_CONNECTION = 'disabledConnection';
+
     public $connectionId;
     public $createPayments;
     public $updateInventory;
@@ -48,7 +55,8 @@ class OrganisationSettings extends Model
         parent::rules();
 
         return [
-            [['connectionId', 'accountSales', 'accountReceivable', 'accountShipping', 'accountRounding'], 'required'],
+            [['connectionId'], 'required', 'on' => self::SCENARIO_DISABLED_CONNECTION],
+            [['connectionId', 'accountSales', 'accountReceivable', 'accountShipping', 'accountRounding'], 'required', 'on' => self::SCENARIO_DEFAULT],
             [['connectionId', 'accountSales', 'accountReceivable', 'accountShipping', 'accountRounding'], 'integer'],
             [['createPayments', 'updateInventory'], 'boolean']
         ];
