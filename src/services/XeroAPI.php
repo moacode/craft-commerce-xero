@@ -29,7 +29,7 @@ use yii\base\Exception;
 
 /**
  * @author  Myles Derham
- * @author  Josh Smith <hey@joshthe.dev>
+ * @author  Josh Smith <by@joshthe.dev>
  * @package Xero
  */
 class XeroAPI extends Component

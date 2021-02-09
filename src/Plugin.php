@@ -5,7 +5,7 @@
  * Xero - Craft Commerce 2/3 plugin
  *
  * @author Myles Beardsmore <mediabeastnz@gmail.com>
- * @author Josh Smith <hey@joshthe.dev>
+ * @author Josh Smith <by@joshthe.dev>
  *
  * @copyright 2019 Myles Derham
  * @link      https://www.mylesderham.dev/

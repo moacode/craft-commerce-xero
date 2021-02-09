@@ -8,7 +8,7 @@
  *
  * @category  Traits
  * @package   CraftCommerceXero
- * @author    Josh Smith <hey@joshthe.dev>
+ * @author    Josh Smith <by@joshthe.dev>
  * @copyright 2021 Josh Smith
  * @license   Proprietary https://github.com/thejoshsmith/craft-commerce-xero/blob/master/LICENSE.md
  * @version   GIT: $Id$
@@ -31,7 +31,7 @@ use thejoshsmith\xero\services\XeroConnections as XeroConnectionsService;
  *
  * @category Traits
  * @package  CraftCommerceXero
- * @author   Josh Smith <hey@joshthe.dev>
+ * @author   Josh Smith <by@joshthe.dev>
  * @license  Proprietary https://github.com/thejoshsmith/craft-commerce-xero/blob/master/LICENSE.md
  * @link     https://joshthe.dev
  * @since    1.0.0
