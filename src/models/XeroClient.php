@@ -4,6 +4,7 @@ namespace thejoshsmith\xero\models;
 
 use XeroPHP\Application;
 use craft\base\Component;
+use thejoshsmith\xero\models\OrganisationSettings;
 use thejoshsmith\xero\records\Connection;
 use thejoshsmith\xero\records\Credential;
 use thejoshsmith\xero\records\ResourceOwner;
@@ -22,6 +23,7 @@ class XeroClient extends Component
     private $_credential;
     private $_resourceOwner;
     private $_tenant;
+    private $_orgSettings;
 
     /**
      * Constructor
@@ -35,6 +37,7 @@ class XeroClient extends Component
         Credential $credential,
         ResourceOwner $resourceOwner = null,
         Tenant $tenant = null,
+        OrganisationSettings $orgSettings = null,
         array $config = []
     ) {
         $this->_application = $application;
@@ -42,6 +45,7 @@ class XeroClient extends Component
         $this->_credential = $credential ?? $connection->getCredential()->one();
         $this->_resourceOwner = $resourceOwner ?? $connection->getResourceOwner()->one();
         $this->_tenant = $tenant ?? $connection->getTenant()->one();
+        $this->_orgSettings = $orgSettings ?? OrganisationSettings::fromConnection($connection);
 
         parent::__construct($config);
     }
@@ -74,6 +78,11 @@ class XeroClient extends Component
     public function getTenant(): Tenant
     {
         return $this->_tenant;
+    }
+
+    public function getOrgSettings(): OrganisationSettings
+    {
+        return $this->_orgSettings;
     }
 
     public function getCacheKey(string $key): string 

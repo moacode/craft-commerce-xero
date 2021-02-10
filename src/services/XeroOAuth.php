@@ -5,6 +5,7 @@ namespace thejoshsmith\xero\services;
 use thejoshsmith\xero\records\Connection;
 use thejoshsmith\xero\traits\XeroOAuth as XeroOAuthTrait;
 use thejoshsmith\xero\traits\XeroOAuthStorage as XeroOAuthStorageTrait;
+use thejoshsmith\xero\models\OrganisationSettings;
 
 use XeroPHP\Application as XeroApplication;
 

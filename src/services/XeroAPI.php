@@ -109,9 +109,9 @@ class XeroAPI extends Component
                 // create the Invoice
                 $invoice = $this->createInvoice($contact, $order);
                 // only continue to payment if a payment has been made and payments are enabled
-                if ($invoice && $order->isPaid && Xero::$plugin->getSettings()->createPayments) {
+                if ($invoice && $order->isPaid && $this->_client->getOrgSettings()->createPayments) {
                     // before we can make the payment we need to get the Account
-                    $account = $this->getAccountByCode(Xero::$plugin->getSettings()->accountReceivable);
+                    $account = $this->getAccountByCode($this->_client->getOrgSettings()->accountReceivable);
                     if ($account) {
                         $payment = $this->createPayment($invoice, $account, $order);
 
@@ -148,7 +148,7 @@ class XeroAPI extends Component
             }
             return $contact;
         } catch(Throwable $e) {
-            $this->_handleException($e)
+            $this->_handleException($e);
 
             Craft::error(
                 $e->getMessage(),
@@ -164,7 +164,7 @@ class XeroAPI extends Component
         // get line items
         foreach ($order->getLineItems() as $orderItem) {
             $lineItem = new LineItem($this->connection);
-            $lineItem->setAccountCode(Xero::$plugin->getSettings()->accountSales);
+            $lineItem->setAccountCode($this->_client->getOrgSettings()->accountSales);
             $lineItem->setDescription($orderItem->description);
             $lineItem->setQuantity($orderItem->qty);
             if ($orderItem->discount > 0) {
@@ -181,7 +181,7 @@ class XeroAPI extends Component
 
 
             // check if product codes should be used and sent (inventory updates)
-            if (Xero::$plugin->getSettings()->updateInventory) {
+            if ($this->_client->getOrgSettings()->updateInventory) {
                 $lineItem->setItemCode($orderItem->sku);
             }
 
@@ -194,21 +194,21 @@ class XeroAPI extends Component
             // shipping adjustments
             if ($adjustment->type == 'shipping') {
                 $lineItem = new LineItem($this->connection);
-                $lineItem->setAccountCode(Xero::$plugin->getSettings()->accountShipping);
+                $lineItem->setAccountCode($this->_client->getOrgSettings()->accountShipping);
                 $lineItem->setDescription($adjustment->name);
                 $lineItem->setQuantity(1);
                 $lineItem->setUnitAmount(Xero::$plugin->withDecimals($this->decimals, $order->getTotalShippingCost()));
                 $invoice->addLineItem($lineItem);
             } elseif ($adjustment->type == 'discount' ) {
                 $lineItem = new LineItem($this->connection);
-                $lineItem->setAccountCode(Xero::$plugin->getSettings()->accountDiscount);
+                $lineItem->setAccountCode($this->_client->getOrgSettings()->accountDiscount);
                 $lineItem->setDescription($adjustment->name);
                 $lineItem->setQuantity(1);
                 $lineItem->setUnitAmount(Xero::$plugin->withDecimals($this->decimals, $adjustment->amount));
                 $invoice->addLineItem($lineItem);
             } elseif ($adjustment->type !== 'tax') {
                 $lineItem = new LineItem($this->connection);
-                $lineItem->setAccountCode(Xero::$plugin->getSettings()->accountAdditionalFees);
+                $lineItem->setAccountCode($this->_client->getOrgSettings()->accountAdditionalFees);
                 $lineItem->setDescription($adjustment->name);
                 $lineItem->setQuantity(1);
                 $lineItem->setUnitAmount(Xero::$plugin->withDecimals($this->decimals, $adjustment->amount));
@@ -243,7 +243,7 @@ class XeroAPI extends Component
 
                 // add rounding to invoice
                 $lineItem = new LineItem($this->connection);
-                $lineItem->setAccountCode(Xero::$plugin->getSettings()->accountRounding);
+                $lineItem->setAccountCode($this->_client->getOrgSettings()->accountRounding);
                 $lineItem->setDescription("Rounding adjustment: Order Total: $".$orderTotal);
                 $lineItem->setQuantity(1);
                 $lineItem->setUnitAmount($roundingAdjustment);
