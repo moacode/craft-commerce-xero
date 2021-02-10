@@ -21,6 +21,7 @@ namespace thejoshsmith\xero\controllers;
 use thejoshsmith\xero\Plugin;
 use thejoshsmith\xero\controllers\BaseController;
 use thejoshsmith\xero\helpers\Xero as XeroHelper;
+use thejoshsmith\xero\events\OAuthEvent;
 
 use Calcinai\OAuth2\Client\Provider\Exception\XeroProviderException;
 
@@ -36,6 +37,9 @@ use yii\web\ServerErrorHttpException;
  */
 class AuthController extends BaseController
 {
+    const EVENT_BEFORE_SAVE_OAUTH = 'beforeSaveOAuth';
+    const EVENT_AFTER_SAVE_OAUTH = 'afterSaveOAuth';
+
     // Public Methods
     // =========================================================================
 
@@ -59,7 +63,6 @@ class AuthController extends BaseController
     public function actionIndex(): Response
     {
         $xeroOAuthService = Plugin::getInstance()->getXeroOAuth();
-        $xeroProvider = $xeroOAuthService->getProvider();
         $params = $this->request->getQueryParams();
 
         // User cancelled the flow...
@@ -70,7 +73,7 @@ class AuthController extends BaseController
 
         // Trigger the OAuth flow
         if (!isset($params['code']) ) {
-            $authUrl = $xeroProvider->getAuthorizationUrl(
+            $authUrl = $xeroOAuthService->getAuthorizationUrl(
                 [
                 'scope' => $xeroOAuthService->getScopes()
                 ]
@@ -79,7 +82,7 @@ class AuthController extends BaseController
             // Store a hashed version of the provider state in session
             Craft::$app->session->set(
                 'oauth2state',
-                $xeroProvider->getState()
+                $xeroOAuthService->getState()
             );
 
             // Off we go to Xero...
@@ -98,31 +101,49 @@ class AuthController extends BaseController
         // Try to get an access token (using the authorization code grant)
         try {
 
-            $token = $xeroProvider->getAccessToken(
-                'authorization_code', [
-                'code' => $params['code']
-                ]
-            );
+            $token = $xeroOAuthService->getAccessToken(['code' => $params['code']]);
 
             // Decode information from the access token
             $jwt = XeroHelper::decodeJwt($token->getToken());
 
             // If you added the openid/profile scopes you can access the authorizing user's identity.
-            $identity = $xeroProvider->getResourceOwner($token);
+            $identity = $xeroOAuthService->getResourceOwner($token);
 
             // Get the tenants that this user is authorized to access
             // and filter them for this authentication event
-            $tenants = $xeroProvider->getTenants(
+            $tenants = $xeroOAuthService->getTenants(
                 $token, [
                 'authEventId' => $jwt->authentication_event_id
                 ]
             );
 
-            // Save the connection data
-            $connections = $xeroOAuthService->saveXeroConnection($identity, $token, $tenants);
+            // Fire a 'beforeSaveOAuth' event
+            $event = new OAuthEvent(
+                [
+                'code' => $params['code'],
+                'jwt' => $jwt,
+                'token' => $token,
+                'resourceOwner' => $identity,
+                'tenants' => $tenants
+                ]
+            );
+            $this->trigger(self::EVENT_BEFORE_SAVE_OAUTH, $event);
+
+            $identity = $event->resourceOwner;
+            $token = $event->token;
+            $tenants = $event->tenants;
+
+            $xeroOAuthService->saveXeroConnection($identity, $token, $tenants);
+
+            // Fire a 'afterSaveOAuth' event
+            $this->trigger(self::EVENT_AFTER_SAVE_OAUTH, $event);
 
         } catch (XeroProviderException $xpe) {
-            throw new ServerErrorHttpException($xpe->getMessage());
+            Craft::error(
+                $xpe->getMessage(),
+                __METHOD__
+            );
+            Craft::$app->getSession()->setError('Something went wrong connecting to Xero, please try again');
         }
 
         Craft::$app->getSession()->setNotice('Xero connection successfully saved');

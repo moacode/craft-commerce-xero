@@ -76,24 +76,24 @@ trait XeroOAuthStorage
             $siteId = Craft::$app->getSites()->getCurrentSite()->id;
         }
 
-        $transaction = Craft::$app->getDb()->beginTransaction();
+        // $transaction = Craft::$app->getDb()->beginTransaction();
 
-        try {
+        // try {
             $resourceOwner = $this->saveResourceOwner($identity);
             $credential = $this->saveAccessToken($accessToken);
 
             // Now, save each tenant connection
-            foreach ($xeroTenants as $xeroTenant) {
-                $tenant = $this->saveTenant($xeroTenant);
-                $connections[] = $this->saveConnection(
-                    $xeroTenant->id, $resourceOwner, $credential, $tenant, $userId, $siteId
-                );
-            }
-
-            $transaction->commit();
-        } catch(\Exception $e) {
-            $transaction->rollBack();
+        foreach ($xeroTenants as $xeroTenant) {
+            $tenant = $this->saveTenant($xeroTenant);
+            $connections[] = $this->saveConnection(
+                $xeroTenant->id, $resourceOwner, $credential, $tenant, $userId, $siteId
+            );
         }
+
+            // $transaction->commit();
+        // } catch(\Exception $e) {
+            // $transaction->rollBack();
+        // }
 
         return $connections;
     }
@@ -118,16 +118,15 @@ trait XeroOAuthStorage
         int $userId,
         int $siteId
     ): Connection {
-        $connection = new Connection(
-            [
+        $data = [
             'connectionId' => $connectionId,
             'credentialId' => $credential->id,
             'resourceOwnerId' => $resourceOwner->id,
             'tenantId' => $tenant->id,
             'userId' => $userId,
             'siteId' => $siteId,
-            ]
-        );
+            'status' => Connection::STATUS_CONNECTED,
+        ];
 
         $existingConnection = Connection::find()->where(
             [
@@ -136,10 +135,12 @@ trait XeroOAuthStorage
         )->one();
 
         if (!empty($existingConnection)) {
-            $connection->id = $existingConnection->id;
-            $connection->setIsNewRecord(false);
+            $connection = $existingConnection;
+        } else {
+            $connection = new Connection();
         }
 
+        $connection->attributes = $data;
         $connection->save();
 
         return $connection;

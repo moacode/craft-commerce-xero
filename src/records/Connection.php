@@ -13,8 +13,8 @@ use craft\web\User;
  */
 class Connection extends ActiveRecord
 {
-    const STATUS_ENABLED = 'enabled';
-    const STATUS_DISABLED = 'disabled';
+    const STATUS_CONNECTED = 'connected';
+    const STATUS_DISCONNECTED = 'disconnected';
 
     /**
      * @inheritdoc
@@ -30,7 +30,7 @@ class Connection extends ActiveRecord
     public function rules()
     {
         return [
-            [['id', 'connectionId', 'credentialId', 'resourceOwnerId', 'tenantId', 'userId', 'siteId'], 'safe'],
+            [['id', 'connectionId', 'credentialId', 'resourceOwnerId', 'tenantId', 'userId', 'siteId', 'status'], 'safe'],
         ];
     }
 

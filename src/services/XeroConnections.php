@@ -11,12 +11,16 @@
 namespace thejoshsmith\xero\services;
 
 
-use thejoshsmith\xero\Plugin;
-use thejoshsmith\xero\records\Connection;
-
 use Craft;
 use craft\base\Component;
+
 use craft\db\ActiveQuery;
+use thejoshsmith\xero\Plugin;
+use thejoshsmith\xero\records\Tenant;
+use thejoshsmith\xero\events\OAuthEvent;
+use thejoshsmith\xero\records\Connection;
+use thejoshsmith\xero\records\Credential;
+use thejoshsmith\xero\records\ResourceOwner;
 
 /**
  * @author  Josh Smith <by@joshthe.dev>
@@ -57,11 +61,7 @@ class XeroConnections extends Component
      */
     public function getCurrentConnection(int $siteId = null): ?Connection
     {
-        return $this->getSiteConnectionsQuery($siteId)->where(
-            [
-            'status' => Connection::STATUS_ENABLED
-            ]
-        )->one();
+        return $this->getSiteConnectionsQuery($siteId)->one();
     }
 
     /**
@@ -91,11 +91,82 @@ class XeroConnections extends Component
 
         Connection::updateAll(
             [
-            'status' => Connection::STATUS_DISABLED
+            'status' => Connection::STATUS_DISCONNECTED
             ], [
             'siteId' => $siteId
             ]
         );
+    }
+
+    /**
+     * Handles the after save OAuth event
+     * Used to disconnect other connected tenants when a new tenant is connected
+     *
+     * @param OAuthEvent $event An OAuth event
+     *
+     * @return void
+     */
+    public function handleAfterSaveOAuthEvent(OAuthEvent $event): void
+    {
+        // No new tenants have been authorised, so carry on
+        if (count($event->tenants) === 0) {
+            return;
+        }
+
+        $tenantConnectionIds = array_column($event->tenants, 'id');
+        $currentTenantConnections = Connection::find()->where(
+            [
+            'NOT IN', 'connectionId', $tenantConnectionIds
+            ]
+        )->all() ?? [];
+
+        // Disconnect all currently connected tenants and remove records
+        foreach ($currentTenantConnections as $connection) {
+            Plugin::getInstance()
+                ->getXeroOAuth()
+                ->disconnect($event->token, $connection->connectionId);
+
+            $this->cleanUpConnection($connection);
+        }
+    }
+
+    /**
+     * Clean up connection and credentials information
+     * We keep resource owner and tenant data as they can be linked to multiple
+     *
+     * @param Connection $connection Connection
+     *
+     * @return void
+     */
+    public function cleanUpConnection(Connection $connection): void
+    {
+        $connection->delete();
+
+        // Remove orphaned credentials
+        $credentials = Credential::find()
+            ->leftJoin(Connection::tableName(), Connection::tableName().'.[[credentialId]] = '.Credential::tableName().'.[[id]]')
+            ->where(['IS', Connection::tableName().'.[[id]]', new \yii\db\Expression('null')])
+            ->all() ?? [];
+
+        if (!empty($credentials)) {
+            $credentialIds = array_column($credentials, 'id');
+            Credential::deleteAll(['IN', 'id', $credentialIds]);
+        }
+    }
+
+    /**
+     * Sets the passed connection as disconnected
+     *
+     * @param Connection $connection Connection object
+     *
+     * @return Connection
+     */
+    public function setDisconnected(Connection $connection): Connection
+    {
+        $connection->status = Connection::STATUS_DISCONNECTED;
+        $connection->save();
+
+        return $connection;
     }
 
     /**

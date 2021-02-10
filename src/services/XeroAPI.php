@@ -10,22 +10,25 @@
 
 namespace thejoshsmith\xero\services;
 
-use thejoshsmith\xero\Plugin;
-use thejoshsmith\xero\records\InvoiceRecord;
+use Craft;
+use Throwable;
 
-use XeroPHP\Application as XeroApplication;
+use yii\base\Exception;
+
+use craft\base\Component;
+use thejoshsmith\xero\Plugin;
+use thejoshsmith\xero\helpers\Xero as XeroHelper;
+use craft\commerce\elements\Order;
+use XeroPHP\Models\Accounting\Account;
 
 use XeroPHP\Models\Accounting\Contact;
 use XeroPHP\Models\Accounting\Invoice;
-use XeroPHP\Models\Accounting\Invoice\LineItem;
 use XeroPHP\Models\Accounting\Payment;
-use XeroPHP\Models\Accounting\Account;
-
-use Craft;
-use craft\base\Component;
-use craft\commerce\elements\Order;
-use XeroPHP\Remote\Collection;
-use yii\base\Exception;
+use thejoshsmith\xero\models\XeroClient;
+use XeroPHP\Application as XeroApplication;
+use thejoshsmith\xero\records\InvoiceRecord;
+use XeroPHP\Models\Accounting\Invoice\LineItem;
+use XeroPHP\Remote\Exception\ForbiddenException;
 
 /**
  * @author  Myles Derham
@@ -43,11 +46,30 @@ class XeroAPI extends Component
      */
     private $decimals = 2;
 
+    /**
+     * The Xero client model
+     *
+     * @var XeroClient
+     */
+    private $_client;
+
     // Public Methods
     // =========================================================================
 
     /**
-     * Returns the Xero client connection
+     * Service Constructor
+     *
+     * @param XeroClient $xeroClient Xero Client model
+     * @param array      $config     Component configuration
+     */
+    public function __construct(XeroClient $xeroClient, array $config = [])
+    {
+        $this->_client = $xeroClient;
+        parent::__construct($config);
+    }
+
+    /**
+     * Returns the Xero client application
      *
      * @author Josh Smith <by@joshthe.dev>
      * @since  1.0.0
@@ -55,14 +77,19 @@ class XeroAPI extends Component
      * @throws Exception
      * @return XeroApplication
      */
-    public function getConnection(): XeroApplication
+    public function getApplication(): XeroApplication
     {
         try {
-            $xeroClient = Plugin::getInstance()
-                ->getXeroOAuth()
-                ->createClient();
+            $application = $this->_client->getApplication();
+            $credential = $this->_client->getCredential();
+
+            // Immediately refresh the access token if it's expired
+            if ($credential->isExpired()) {
+                $credential->refreshAccessToken();
+            }
+
         } catch (Exception $e) {
-            throw new Exception('Unable to get Xero Client, check there\'s an active connection.');
+            throw new Exception('Something went wrong establishing a Xero connection, check there\'s an active connection.');
 
             Craft::error(
                 $e->getMessage(),
@@ -70,7 +97,7 @@ class XeroAPI extends Component
             );
         }
 
-        return $xeroClient;
+        return $application;
     }
 
     public function sendOrder(Order $order)
@@ -102,7 +129,7 @@ class XeroAPI extends Component
 
             // this can return either fullname or their username (email hopefully)
             $user = $order->getUser();
-            $contact = $this->connection->load('Accounting\\Contact')->where(
+            $contact = $this->getApplication()->load('Accounting\\Contact')->where(
                 '
                 Name=="' . $user->getName() . '" OR
                 EmailAddress=="' . $user->getName() . '"
@@ -120,11 +147,8 @@ class XeroAPI extends Component
                 $contact->save();
             }
             return $contact;
-        } catch(\Exception $e) {
-            $response = [
-                'message' => $e->getMessage(),
-                'code' => $e->getCode()
-            ];
+        } catch(Throwable $e) {
+            $this->_handleException($e)
 
             Craft::error(
                 $e->getMessage(),
@@ -136,7 +160,7 @@ class XeroAPI extends Component
 
     public function createInvoice(Contact $contact, Order $order)
     {
-        $invoice = new Invoice($this->connection);
+        $invoice = new Invoice($this->getApplication());
         // get line items
         foreach ($order->getLineItems() as $orderItem) {
             $lineItem = new LineItem($this->connection);
@@ -238,11 +262,8 @@ class XeroAPI extends Component
 
             return $invoice;
 
-        } catch(Exception $e) {
-            $response = [
-                'message' => $e->getMessage(),
-                'code' => $e->getCode()
-            ];
+        } catch(Throwable $e) {
+            $this->_handleException($e);
 
             Craft::error(
                 $e->getMessage(),
@@ -258,7 +279,7 @@ class XeroAPI extends Component
     {
         try {
             // create the payment
-            $payment = new Payment($this->connection);
+            $payment = new Payment($this->getApplication());
             $payment->setInvoice($invoice)
                 ->setAccount($account)
                 ->setReference($order->getLastTransaction()->reference)
@@ -266,11 +287,8 @@ class XeroAPI extends Component
                 ->setDate($order->datePaid);
             $payment->save();
             return $payment;
-        } catch(Exception $e) {
-            $response = [
-                'message' => $e->getMessage(),
-                'code' => $e->getCode()
-            ];
+        } catch(Throwable $e) {
+            $this->_handleException($e);
 
             Craft::error(
                 $e->getMessage(),
@@ -282,19 +300,20 @@ class XeroAPI extends Component
 
     public function getAccounts()
     {
-        $cacheKey = 'xero-accounts';
+        $cacheKey = $this->_client->getCacheKey('xero-accounts');
 
         try {
-            $connection = $this->getConnection();
             $cache = Craft::$app->getCache();
+            $application = $this->getApplication();
 
-            $accounts = $this->_unserialize(Account::class, $cache->get($cacheKey));
+            $accounts = XeroHelper::unserialize(Account::class, $cache->get($cacheKey), $application);
             if (empty($accounts)) {
-                $accounts = $connection->load(Account::class)->execute();
-                $cache->set($cacheKey, $this->_serialize($accounts), self::CACHE_DURATION);
+                $accounts = $application->load(Account::class)->execute();
+                $cache->set($cacheKey, XeroHelper::serialize($accounts), self::CACHE_DURATION);
             }
 
-        } catch(Exception $e) {
+        } catch(Throwable $e) {
+            $this->_handleException($e);
             Craft::error(
                 $e->getMessage(),
                 __METHOD__
@@ -306,21 +325,26 @@ class XeroAPI extends Component
 
     public function getAccountByCode($code)
     {
-        try {
-            $account = $this->getConnection()->load('Accounting\\Account')->where('Code=="' . $code . '"')->first();
-            return $account;
-        } catch(Exception $e) {
-            $response = [
-                'message' => $e->getMessage(),
-                'code' => $e->getCode()
-            ];
+        $cacheKey = $this->_client->getCacheKey('xero-account-by-code');
 
+        try {
+            $cache = Craft::$app->getCache();
+            $application = $this->getApplication();
+
+            $account = XeroHelper::unserialize(Account::class, $cache->get($cacheKey), $application);
+            if (empty($account)) {
+                $account = $this->getConnection()->load(Account::class)->where('Code=="' . $code . '"')->first();
+                $cache->set($cacheKey, XeroHelper::serialize($account), self::CACHE_DURATION);
+            }
+        } catch(Exception $e) {
+            $this->_handleException($e);
             Craft::error(
                 $e->getMessage(),
                 __METHOD__
             );
         }
-        return false;
+
+        return $account ?? null;
     }
 
     public function getInvoiceFromOrder(Order $order)
@@ -333,51 +357,29 @@ class XeroAPI extends Component
     }
 
     /**
-     * Serializes a Xero collection of models
-     * Note: this is necessary as each model has a reference to the
-     * Guzzle client which contains anonymous functions, and therefore
-     * we can't serialize it into cache "as is".
+     * Handles Xero API Exceptions
      *
-     * @param Collection $collection A collection of models
+     * @param Throwable $e Exception/Error object
      *
-     * @see https://github.com/calcinai/xero-php/issues/734
-     *
-     * @return array
+     * @return void
      */
-    private function _serialize(Collection $collection): array
+    private function _handleException(Throwable $e): void
     {
-        $serialized = [];
+        $exceptionType = get_class($e);
+        $session = Craft::$app->getSession();
 
-        foreach ($collection as $model) {
-            $serialized[] = $model->toStringArray();
+        switch($exceptionType) {
+        case ForbiddenException::class:
+            // revoke connection
+            Plugin::getInstance()
+                ->getXeroConnections()
+                ->setDisconnected($this->_client->getConnection());
+            $session->setError('You don\'t have access to this organisation. Please re-authenticate to resume access.');
+            break;
+
+        default:
+            $session->setError('Something went wrong fetching data from Xero, please try again');
+            break;
         }
-
-        return $serialized;
-    }
-
-    /**
-     * Used to unserialize cached data
-     *
-     * @param string $class      Name of the Xero API model class
-     * @param array  $collection Collection of data to unserialize
-     *
-     * @see https://github.com/calcinai/xero-php/issues/734
-     *
-     * @return Collection|null
-     */
-    private function _unserialize(string $class, $collection): ?Collection
-    {
-        if (!is_iterable($collection)) {
-            return null;
-        }
-
-        $unserialized = [];
-        foreach ($collection as $data) {
-            $model = new $class($this->getConnection());
-            $model->fromStringArray($data);
-            $unserialized[] = $model;
-        }
-
-        return new Collection($unserialized);
     }
 }

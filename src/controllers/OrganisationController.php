@@ -42,7 +42,7 @@ class OrganisationController extends BaseController
      */
     public function init()
     {
-        $this->requirePermission('commerce-Organisation');
+        $this->requirePermission('xero-Organisation');
         parent::init();
     }
 
@@ -57,7 +57,6 @@ class OrganisationController extends BaseController
         $xeroConnections = Plugin::getInstance()->getXeroConnections();
 
         $connection = $xeroConnections->getCurrentConnection();
-        $connections = $xeroConnections->getAllConnections();
 
         // Create a new settings model
         if (empty($orgSettings) && $connection) {
@@ -69,8 +68,7 @@ class OrganisationController extends BaseController
             'xero/organisation/_index', compact(
                 'pluginSettings',
                 'orgSettings',
-                'connection',
-                'connections'
+                'connection'
             )
         );
     }
@@ -86,51 +84,34 @@ class OrganisationController extends BaseController
 
         $data = $this->request->getBodyParams();
 
+        // Connection ID is a required parameter
+        if ( empty($data['connectionId']) ) {
+            $this->setFailFlash(Plugin::t('Couldn\'t find the organisation\'s connection.'));
+            return null;
+        }
+
         $xeroConnections = Plugin::getInstance()->getXeroConnections();
         $connection = $xeroConnections->getCurrentConnection();
 
         $orgSettings = new OrganisationSettingsModel();
         $orgSettings->attributes = $data;
 
-        if (empty($connection)) {
-            $orgSettings->scenario = OrganisationSettingsModel::SCENARIO_DISABLED_CONNECTION;
-        }
-
         if (! $orgSettings->validate()) {
             $this->setFailFlash(Plugin::t('Couldn’t save organisation settings.'));
 
-            Craft::$app->getUrlManager()->setRouteParams(
-                [
-                'orgSettings' => $orgSettings
-                ]
-            );
+            Craft::$app
+                ->getUrlManager()
+                ->setRouteParams(['orgSettings' => $orgSettings]);
 
             return null;
         }
 
-        $connectionRecord = Connection::find()
-            ->where(['id' => $orgSettings->connectionId])
-            ->one();
-
-        if (empty($connectionRecord)) {
-            throw new NotFoundHttpException('Unable to find connection');
-        }
-
-        // Disable all other connections as only
-        // one can be active per site at any one time
-        $xeroConnections->disableAllConnections();
-        $connectionRecord->refresh();
-
-        // Only serialize settings if this isn't a disabled connection
-        if ($orgSettings->scenario !== OrganisationSettingsModel::SCENARIO_DISABLED_CONNECTION) {
-            $connectionRecord->settings = $orgSettings->getSettings();
-        }
-
-        // Enable the connection and save it.
-        $connectionRecord->status = Connection::STATUS_ENABLED;
-        $connectionRecord->save();
+        $connection->id = $data['connectionId'];
+        $connection->enabled = $data['enabled'] ?? false;
+        $connection->settings = $orgSettings->attributes;
+        $connection->save();
 
         $this->setSuccessFlash(Plugin::t('Organisation Settings saved.'));
-        $this->redirectToPostedUrl();
+        return null;
     }
 }

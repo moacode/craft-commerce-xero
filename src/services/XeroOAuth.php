@@ -10,6 +10,7 @@ use XeroPHP\Application as XeroApplication;
 
 use Craft;
 use craft\base\Component;
+use thejoshsmith\xero\models\XeroClient;
 use yii\base\Exception;
 
 /**
@@ -35,9 +36,8 @@ class XeroOAuth extends Component
     /**
      * Creates an authenticated Xero client
      *
-     * @param integer $siteId  Defaults to the current site ID
-     * @param string  $status  Defaults to the connection enabled status
-     * @param bool    $refresh Whether to refresh the access token immediately
+     * @param integer $siteId Defaults to the current site ID
+     * @param string  $status Defaults to the connection enabled status
      *
      * @author Josh Smith <by@joshthe.dev>
      * @since  1.0.0
@@ -47,21 +47,20 @@ class XeroOAuth extends Component
      */
     public static function createClient(
         int $siteId = null,
-        string $status = Connection::STATUS_ENABLED,
-        bool $refresh = true
-    ): XeroApplication {
+        array $where = []
+    ): XeroClient {
 
         if (empty($siteId)) {
             $siteId = Craft::$app->getSites()->getCurrentSite()->id;
         }
 
         // Fetch the connection record, eager loading required access info
-        $connection = Connection::find()->where(
-            [
-            'siteId' => $siteId,
-            'status' => $status
-            ]
-        )->with(['credential', 'tenant'])->one();
+        $connection = Connection::find()
+            ->where(
+                array_merge(['siteId' => $siteId], $where)
+            )->with(['credential', 'resourceOwner', 'tenant'])
+            ->orderBy('dateCreated DESC')
+            ->one();
 
         if (empty($connection)) {
             throw new Exception('No connection record found');
@@ -69,15 +68,19 @@ class XeroOAuth extends Component
 
         $tenant = $connection->tenant;
         $credential = $connection->credential;
+        $resourceOwner = $connection->resourceOwner;
 
-        // Immediately refresh the access token if it's expired
-        if ($credential->isExpired() && $refresh ) {
-            $credential->refreshAccessToken();
-        }
-
-        return new XeroApplication(
+        $application = new XeroApplication(
             $credential->accessToken,
             $tenant->tenantId
+        );
+
+        return new XeroClient(
+            $application,
+            $connection,
+            $credential,
+            $resourceOwner,
+            $tenant
         );
     }
 }

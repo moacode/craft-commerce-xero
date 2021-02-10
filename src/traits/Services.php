@@ -19,8 +19,9 @@
 namespace thejoshsmith\xero\traits;
 
 use Craft;
-use craft\helpers\UrlHelper;
+use yii\base\Exception;
 
+use craft\helpers\UrlHelper;
 use thejoshsmith\xero\Plugin;
 use thejoshsmith\xero\services\XeroAPI as XeroAPIService;
 use thejoshsmith\xero\services\XeroOAuth as XeroOAuthService;
@@ -107,5 +108,24 @@ trait Services
                 'connections' => XeroConnectionsService::class
             ]
         );
+    }
+
+    /**
+     * Set global dependency injection container definitions
+     *
+     * @return void
+     */
+    private function _setDependencies()
+    {
+        // Automatically inject an authenticated Xero Client
+        // into the the consuming class.
+        try {
+            $xeroClient = $this->getXeroOAuth()::createClient();
+            Craft::$container->set(
+                'thejoshsmith\xero\models\XeroClient', $xeroClient
+            );
+        } catch (Exception $e){
+            // Swallow it whole
+        }
     }
 }

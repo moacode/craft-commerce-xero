@@ -83,20 +83,6 @@ class m210206_084155_xero_auth_tables extends Migration
             );
         }
 
-        if (!$this->_tableExists(AccountCode::tableName())) {
-            $this->createTable(
-                AccountCode::tableName(), [
-                    'id' => $this->primaryKey(),
-                    'tenantId' => $this->integer()->notNull(),
-                    'code' => $this->integer()->unsigned()->notNull(),
-                    'name' => $this->string()->notNull(),
-                    'dateCreated' => $this->dateTime()->notNull(),
-                    'dateUpdated' => $this->dateTime()->notNull(),
-                    'uid' => $this->uid(),
-                ]
-            );
-        }
-
         if (!$this->_tableExists((Connection::tableName()))) {
             $this->createTable(
                 Connection::tableName(), [
@@ -108,11 +94,12 @@ class m210206_084155_xero_auth_tables extends Migration
                     'userId' => $this->integer()->notNull(),
                     'siteId' => $this->integer()->notNull(),
                     'settings' => $this->longText()->notNull(),
+                    'enabled' => $this->boolean()->notNull()->defaultValue(false),
                     'status' => $this->enum(
                         'status', [
-                            'enabled', 'disabled', 'expired'
+                            'connected', 'disconnected', 'expired'
                             ]
-                    )->notNull()->defaultValue('disabled'),
+                    )->notNull()->defaultValue('connected'),
                     'dateCreated' => $this->dateTime()->notNull(),
                     'dateUpdated' => $this->dateTime()->notNull(),
                     'uid' => $this->uid(),
@@ -124,12 +111,11 @@ class m210206_084155_xero_auth_tables extends Migration
     private function _addForeignKeys()
     {
         $schema = Craft::$app->db->schema;
-        $this->addForeignKey('FK_'.$schema->getRawTableName(Connection::tableName()).'_'.$schema->getRawTableName(Credential::tableName()), Connection::tableName(), ['credentialId'], Credential::tableName(), ['id'], 'CASCADE', null);
-        $this->addForeignKey('FK_'.$schema->getRawTableName(Connection::tableName()).'_'.$schema->getRawTableName(ResourceOwner::tableName()), Connection::tableName(), ['resourceOwnerId'], ResourceOwner::tableName(), ['id'], 'CASCADE', null);
-        $this->addForeignKey('FK_'.$schema->getRawTableName(Connection::tableName()).'_'.$schema->getRawTableName(Tenant::tableName()), Connection::tableName(), ['tenantId'], Tenant::tableName(), ['id'], 'CASCADE', null);
-        $this->addForeignKey('FK_'.$schema->getRawTableName(Connection::tableName()).'_'.$schema->getRawTableName(Table::USERS), Connection::tableName(), ['userId'], Table::USERS, ['id'], 'CASCADE', null);
-        $this->addForeignKey('FK_'.$schema->getRawTableName(Connection::tableName()).'_'.$schema->getRawTableName(Table::SITES), Connection::tableName(), ['siteId'], Table::SITES, ['id'], 'CASCADE', null);
-        $this->addForeignKey('FK_'.$schema->getRawTableName(AccountCode::tableName()).'_'.$schema->getRawTableName(Tenant::tableName()), AccountCode::tableName(), ['tenantId'], Tenant::tableName(), ['id'], 'CASCADE', null);
+        $this->addForeignKey('FK_'.$schema->getRawTableName(Connection::tableName()).'_'.$schema->getRawTableName(Credential::tableName()), Connection::tableName(), ['credentialId'], Credential::tableName(), ['id'], 'CASCADE');
+        $this->addForeignKey('FK_'.$schema->getRawTableName(Connection::tableName()).'_'.$schema->getRawTableName(ResourceOwner::tableName()), Connection::tableName(), ['resourceOwnerId'], ResourceOwner::tableName(), ['id']);
+        $this->addForeignKey('FK_'.$schema->getRawTableName(Connection::tableName()).'_'.$schema->getRawTableName(Tenant::tableName()), Connection::tableName(), ['tenantId'], Tenant::tableName(), ['id']);
+        $this->addForeignKey('FK_'.$schema->getRawTableName(Connection::tableName()).'_'.$schema->getRawTableName(Table::USERS), Connection::tableName(), ['userId'], Table::USERS, ['id']);
+        $this->addForeignKey('FK_'.$schema->getRawTableName(Connection::tableName()).'_'.$schema->getRawTableName(Table::SITES), Connection::tableName(), ['siteId'], Table::SITES, ['id']);
     }
 
     /**

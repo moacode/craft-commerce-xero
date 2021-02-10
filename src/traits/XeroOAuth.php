@@ -2,7 +2,9 @@
 
 namespace thejoshsmith\xero\traits;
 
+use Calcinai\OAuth2\Client\XeroResourceOwner;
 use League\OAuth2\Client\Provider\AbstractProvider;
+use League\OAuth2\Client\Token\AccessToken;
 use League\OAuth2\Client\Token\AccessTokenInterface;
 
 /**
@@ -49,20 +51,6 @@ trait XeroOAuth
     private $_provider;
 
     /**
-     * Stores the Access Token
-     *
-     * @var string
-     */
-    private $_accessToken;
-
-    /**
-     * ID of the connected tenant
-     *
-     * @var string
-     */
-    private $_tenantId;
-
-    /**
      * Sets the Provider
      *
      * @param  AbstractProvider $provider An Abstract Provider (Guzzle)
@@ -78,7 +66,7 @@ trait XeroOAuth
      *
      * @return AbstractProvider
      */
-    public function getProvider(): AbstractProvider
+    protected function getProvider(): AbstractProvider
     {
         return $this->_provider;
     }
@@ -105,6 +93,44 @@ trait XeroOAuth
     }
 
     /**
+     * Returns the OAuth state
+     * 
+     * @return array
+     */
+    public function getState(): string
+    {
+        return $this->getProvider()->getState();
+    }
+
+    /**
+     * Returns an authorization URL
+     *
+     * @param  array $params
+     * 
+     * @return string
+     */
+    public function getAuthorizationUrl(array $params = []): string
+    {
+        return $this->getProvider()->getAuthorizationUrl($params);
+    }
+
+    /**
+     * Returns an Access Token
+     * 
+     * @param  array  $params An array of params
+     * 
+     * @return AccessTokenInterface
+     */
+    public function getAccessToken(array $params = []): AccessTokenInterface
+    {
+        return $this->getProvider()->getAccessToken(
+            'authorization_code', [
+            'code' => $params['code']
+            ]
+        );
+    }
+
+    /**
      * Refreshes an access token
      *
      * @param string $refreshToken Refresh Token
@@ -118,5 +144,44 @@ trait XeroOAuth
             'refresh_token' => $refreshToken
             ]
         );
+    }
+
+    /**
+     * Returns the authorised tenants
+     * 
+     * @param  AccessTokenInterface $accessToken Access Token
+     * @param  array                $params      Request Params
+     * 
+     * @return array
+     */
+    public function getTenants(AccessTokenInterface $accessToken, array $params = []): array
+    {
+        return $this->getProvider()->getTenants($accessToken, $params);
+    }
+
+    /**
+     * Returns the Resource Owner
+     *
+     * @param  AccessTokenInterface $accessToken Access Token
+     * @param  array                $params      Request Params
+     *
+     * @return ResourceOwner
+     */
+    public function getResourceOwner(AccessTokenInterface $accessToken, array $params = []): XeroResourceOwner
+    {
+        return $this->getProvider()->getResourceOwner($accessToken, $params);
+    }
+
+    /**
+     * Revokes a token from Xero
+     *
+     * @param AccessTokenInterface $accessToken  Access Token to revoke
+     * @param string               $connectionId Connection ID
+     *
+     * @return void
+     */
+    public function disconnect(AccessTokenInterface $accessToken, string $connectionId)
+    {
+        return $this->getProvider()->disconnect($accessToken, $connectionId);
     }
 }

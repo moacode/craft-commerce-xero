@@ -30,6 +30,8 @@ use craft\web\twig\variables\CraftVariable;
 use yii\base\Event;
 
 use craft\commerce\elements\Order;
+use thejoshsmith\xero\controllers\AuthController;
+use thejoshsmith\xero\events\OAuthEvent;
 
 /**
  * Class Xero
@@ -90,6 +92,7 @@ class Plugin extends CraftPlugin
 
         // Bootstrap the plugin
         $this->_setPluginComponents();
+        $this->_setDependencies();
         $this->_registerEvents();
         $this->_registerCpRoutes();
         $this->_registerVariables();
@@ -128,13 +131,6 @@ class Plugin extends CraftPlugin
             $ret['subnav']['organisation'] = [
                 'label' => self::t('Organisation'),
                 'url' => 'xero/organisation'
-            ];
-        }
-
-        if (Craft::$app->getUser()->checkPermission('xero-manageConnections')) {
-            $ret['subnav']['connections'] = [
-                'label' => self::t('Connections'),
-                'url' => 'xero/connections'
             ];
         }
 
@@ -228,6 +224,13 @@ class Plugin extends CraftPlugin
                         ]
                     )
                 );
+            }
+        );
+
+        // Disconnect other current connections each time the user connects other tenants
+        Event::on(
+            AuthController::class, AuthController::EVENT_AFTER_SAVE_OAUTH, function (OAuthEvent $event) {
+                $this->getXeroConnections()->handleAfterSaveOAuthEvent($event);
             }
         );
     }

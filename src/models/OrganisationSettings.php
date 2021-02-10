@@ -7,14 +7,6 @@ use thejoshsmith\xero\records\Connection;
 
 class OrganisationSettings extends Model
 {
-    /**
-     * Define the disabled connection scenario
-     * This is invoked when setting an active organisation
-     * for the first time
-     */
-    const SCENARIO_DISABLED_CONNECTION = 'disabledConnection';
-
-    public $connectionId;
     public $createPayments;
     public $updateInventory;
     public $accountSales;
@@ -37,7 +29,6 @@ class OrganisationSettings extends Model
 
         $organisationSettings = new static();
 
-        $organisationSettings->connectionId = $connection->id;
         $organisationSettings->createPayments = $settings->createPayments ?? null;
         $organisationSettings->updateInventory = $settings->updateInventory ?? null;
         $organisationSettings->accountSales = $settings->accountSales ?? null;
@@ -55,29 +46,9 @@ class OrganisationSettings extends Model
         parent::rules();
 
         return [
-            [['connectionId'], 'required', 'on' => self::SCENARIO_DISABLED_CONNECTION],
-            [['connectionId', 'accountSales', 'accountReceivable', 'accountShipping', 'accountRounding'], 'required', 'on' => self::SCENARIO_DEFAULT],
-            [['connectionId', 'accountSales', 'accountReceivable', 'accountShipping', 'accountRounding'], 'integer'],
+            [['accountSales', 'accountReceivable', 'accountShipping', 'accountRounding'], 'required'],
+            [['accountSales', 'accountReceivable', 'accountShipping', 'accountRounding', 'accountDiscounts', 'accountAdditionalFees'], 'integer'],
             [['createPayments', 'updateInventory'], 'boolean']
-        ];
-    }
-
-    /**
-     * Returns an array of settings values to be serialized
-     *
-     * @return array
-     */
-    public function getSettings(): array
-    {
-        return [
-            'createPayments' => $this->createPayments,
-            'updateInventory' => $this->updateInventory,
-            'accountSales' => $this->accountSales,
-            'accountReceivable' => $this->accountReceivable,
-            'accountShipping' => $this->accountShipping,
-            'accountRounding' => $this->accountRounding,
-            'accountDiscounts' => $this->accountDiscounts,
-            'accountAdditionalFees' => $this->accountAdditionalFees,
         ];
     }
 }
