@@ -85,7 +85,7 @@ class XeroClient extends Component
         return $this->_orgSettings;
     }
 
-    public function getCacheKey(string $key): string 
+    public function getCacheKey(string $key): string
     {
         return "$key-{$this->getTenant()->tenantId}";
     }
