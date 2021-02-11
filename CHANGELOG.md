@@ -1,5 +1,12 @@
 # Release Notes for Craft Commerce Xero
 
+## 1.0.0-beta.1 - 2021-02-12
+### Changed
+- Added support for Xero OAuth 2.0.
+- Plugin now has a CP nav item.
+- Account code mappings and settings can be changed in production mode.
+- Refactored code base
+
 ## 0.9.3 - 2019-10-05
 ### Changed
 - order items sent to Xero now use Crafts prodsuct description, which if isn't set defaults to title.
