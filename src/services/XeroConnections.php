@@ -15,6 +15,7 @@ use Craft;
 use craft\base\Component;
 
 use craft\db\ActiveQuery;
+use League\OAuth2\Client\Token\AccessTokenInterface;
 use thejoshsmith\xero\Plugin;
 use thejoshsmith\xero\records\Tenant;
 use thejoshsmith\xero\events\OAuthEvent;
@@ -122,26 +123,36 @@ class XeroConnections extends Component
 
         // Disconnect all currently connected tenants and remove records
         foreach ($currentTenantConnections as $connection) {
-            Plugin::getInstance()
-                ->getXeroOAuth()
-                ->disconnect($event->token, $connection->connectionId);
-
-            $this->cleanUpConnection($connection);
+            $this->cleanUpConnection($event->token, $connection);
         }
+
+        $this->removeOrphanedCredentials();
     }
 
     /**
      * Clean up connection and credentials information
      * We keep resource owner and tenant data as they can be linked to multiple
      *
-     * @param Connection $connection Connection
+     * @param AccessTokenInterface $token      Access Token
+     * @param Connection           $connection Connection
      *
      * @return void
      */
-    public function cleanUpConnection(Connection $connection): void
+    public function cleanUpConnection(AccessTokenInterface $token, Connection $connection): void
     {
+        Plugin::getInstance()
+            ->getXeroOAuth()
+            ->disconnect($token, $connection->connectionId);
         $connection->delete();
+    }
 
+    /**
+     * Removes orphaned credentials from the DB
+     *
+     * @return void
+     */
+    public function removeOrphanedCredentials()
+    {
         // Remove orphaned credentials
         $credentials = Credential::find()
             ->leftJoin(Connection::tableName(), Connection::tableName().'.[[credentialId]] = '.Credential::tableName().'.[[id]]')

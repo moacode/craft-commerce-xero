@@ -4,6 +4,7 @@ namespace thejoshsmith\xero\models;
 
 use XeroPHP\Application;
 use craft\base\Component;
+use thejoshsmith\xero\factories\XeroClient as FactoriesXeroClient;
 use thejoshsmith\xero\models\OrganisationSettings;
 use thejoshsmith\xero\records\Connection;
 use thejoshsmith\xero\records\Credential;
@@ -88,5 +89,21 @@ class XeroClient extends Component
     public function getCacheKey(string $key): string
     {
         return "$key-{$this->getTenant()->tenantId}";
+    }
+
+    public function refreshAccessToken()
+    {
+        $tenant = $this->getTenant();
+        $credential = $this->getCredential();
+
+        $credential->refreshAccessToken();
+        $this->setApplication(
+            FactoriesXeroClient::buildApplication($credential, $tenant)
+        );
+    }
+
+    public function hasAccessTokenExpired()
+    {
+        return $this->getCredential()->isExpired();
     }
 }

@@ -10,11 +10,7 @@
 
 namespace thejoshsmith\xero\controllers;
 
-use thejoshsmith\xero\Plugin;
-
-use Craft;
 use craft\web\Controller;
-use craft\commerce\Plugin as Commerce;
 
 class BaseController extends Controller
 {
@@ -28,20 +24,4 @@ class BaseController extends Controller
         $this->requirePermission('accessPlugin-xero');
         parent::init();
     }
-
-    // Public Methods
-    // =========================================================================
-
-    public function actionSendOrderToXero()
-    {
-        $this->requireLogin();
-
-        $orderId = Craft::$app->request->getParam('orderId');
-        if ($orderId) {
-            $order = Commerce::getInstance()->getOrders()->getOrderById($orderId);
-            Plugin::getInstance()->api->sendOrder($order);
-        }
-        return false;
-    }
-
 }

@@ -20,7 +20,6 @@ use craft\web\UrlManager;
 use craft\events\TemplateEvent;
 use craft\commerce\elements\Order;
 
-use craft\services\UserPermissions;
 use thejoshsmith\xero\traits\Routes;
 use craft\base\Plugin as CraftPlugin;
 use thejoshsmith\xero\traits\Services;
@@ -29,7 +28,6 @@ use thejoshsmith\xero\events\OAuthEvent;
 use thejoshsmith\xero\jobs\SendToXeroJob;
 use craft\web\twig\variables\CraftVariable;
 
-use craft\events\RegisterUserPermissionsEvent;
 use thejoshsmith\xero\controllers\AuthController;
 use thejoshsmith\xero\web\assets\SendToXeroAsset;
 use thejoshsmith\xero\web\twig\CraftVariableBehavior;
@@ -61,7 +59,7 @@ class Plugin extends CraftPlugin
      * The default set of Xero OAuth grant permissions
      * the plugin will request from Xero
      */
-    const XERO_OAUTH_SCOPES = 'openid email profile offline_access accounting.transactions accounting.settings';
+    const XERO_OAUTH_SCOPES = 'openid email profile offline_access accounting.transactions accounting.settings accounting.contacts';
 
     // Static Properties
     // =========================================================================
@@ -92,16 +90,20 @@ class Plugin extends CraftPlugin
     {
         parent::init();
 
+        if (!$this->isInstalled) {
+            return;
+        }
+
         // Bootstrap the plugin
         $this->_setPluginComponents();
         $this->_setDependencies();
         $this->_registerCpRoutes();
+        $this->_registerVariables();
         $this->_registerPluginEvents();
 
         // Only register Xero events if we have an active connection
         if ($this->getXeroApi()->isConnected()) {
             $this->_registerXeroEvents();
-            $this->_registerVariables();
         }
 
         Craft::info(

@@ -18,19 +18,21 @@ use yii\base\Exception;
 use craft\base\Component;
 use thejoshsmith\xero\Plugin;
 use craft\commerce\elements\Order;
+use thejoshsmith\xero\factories\XeroClient as FactoriesXeroClient;
 use XeroPHP\Models\Accounting\Account;
 use XeroPHP\Models\Accounting\Contact;
 
 use XeroPHP\Models\Accounting\Invoice;
 use XeroPHP\Models\Accounting\Payment;
 use thejoshsmith\xero\models\XeroClient;
+use thejoshsmith\xero\records\Connection;
 use XeroPHP\Application as XeroApplication;
-use thejoshsmith\xero\records\InvoiceRecord;
-use XeroPHP\Models\Accounting\Invoice\LineItem;
+use XeroPHP\Models\Accounting\LineItem;
 use XeroPHP\Remote\Exception\ForbiddenException;
 use thejoshsmith\xero\helpers\Xero as XeroHelper;
-use thejoshsmith\xero\records\Connection;
+use XeroPHP\Remote\Exception\BadRequestException;
 use XeroPHP\Remote\Exception\NotAvailableException;
+use thejoshsmith\xero\records\Invoice as InvoiceRecord;
 use XeroPHP\Remote\Exception\RateLimitExceededException;
 use XeroPHP\Remote\Exception\OrganisationOfflineException;
 
@@ -56,6 +58,13 @@ class XeroAPI extends Component
      * @var XeroClient
      */
     private $_client;
+
+    /**
+     * Stores whether the access token has been refreshed
+     *
+     * @var boolean
+     */
+    private $_hasRefreshed = false;
 
     // Public Methods
     // =========================================================================
@@ -101,19 +110,17 @@ class XeroAPI extends Component
     public function getApplication(): XeroApplication
     {
         try {
-            $application = $this->_client->getApplication();
-            $credential = $this->_client->getCredential();
-
-            // Immediately refresh the access token if it's expired
-            if ($credential->isExpired()) {
-                $credential->refreshAccessToken();
+            // Immediately refresh the access token
+            if (!$this->_hasRefreshed || $this->_client->hasAccessTokenExpired()) {
+                $this->_client->refreshAccessToken();
+                $this->_hasRefreshed = true;
             }
 
         } catch (Exception $e) {
             throw new Exception('Something went wrong establishing a Xero connection, check there\'s an active connection.');
         }
 
-        return $application;
+        return $this->_client->getApplication();
     }
 
     public function sendOrder(Order $order)
@@ -142,21 +149,30 @@ class XeroAPI extends Component
     public function findOrCreateContact(Order $order)
     {
         try {
-
             // this can return either fullname or their username (email hopefully)
             $user = $order->getUser();
-            $contact = $this->getApplication()->load('Accounting\\Contact')->where(
+
+            // Define contact details
+            // Note: It's possible for customers to _only_ have
+            // an email address, so we need to cater for that scenario
+            $contactEmail = $user ? $user->email : $order->getEmail();
+            $contactName = $user ? $user->getName() : $order->getEmail();
+            $contactFirstName = $user->firstName ?? null;
+            $contactLastName = $user->lastName ?? null;
+
+            $contact = $this->getApplication()->load(Contact::class)->where(
                 '
-                Name=="' . $user->getName() . '" OR
-                EmailAddress=="' . $user->getName() . '"
+                Name=="' . $contactName . '" OR
+                EmailAddress=="' . $contactEmail . '"
             '
             )->first();
+
             if (empty($contact) && !isset($contact)) {
-                $contact = new Contact($this->connection);
-                $contact->setName($user->getName())
-                    ->setFirstName($user->firstName)
-                    ->setLastName($user->lastName)
-                    ->setEmailAddress($user->email);
+                $contact = new Contact($this->getApplication());
+                $contact->setName($contactName)
+                    ->setFirstName($contactFirstName)
+                    ->setLastName($contactLastName)
+                    ->setEmailAddress($contactEmail);
 
                 // TODO: add hook (before_save_contact)
 
@@ -174,18 +190,18 @@ class XeroAPI extends Component
         $invoice = new Invoice($this->getApplication());
         // get line items
         foreach ($order->getLineItems() as $orderItem) {
-            $lineItem = new LineItem($this->connection);
+            $lineItem = new LineItem($this->getApplication());
             $lineItem->setAccountCode($this->_client->getOrgSettings()->accountSales);
             $lineItem->setDescription($orderItem->description);
             $lineItem->setQuantity($orderItem->qty);
             if ($orderItem->discount > 0) {
                 $discountPercentage = (($orderItem->discount / $orderItem->subtotal) * -100);
-                $lineItem->setDiscountRate(Xero::$plugin->withDecimals($this->decimals, $discountPercentage));
+                $lineItem->setDiscountRate(Plugin::getInstance()->withDecimals($this->decimals, $discountPercentage));
             }
             if ($orderItem->salePrice > 0) {
-                $lineItem->setUnitAmount(Xero::$plugin->withDecimals($this->decimals, $orderItem->salePrice));
+                $lineItem->setUnitAmount(Plugin::getInstance()->withDecimals($this->decimals, $orderItem->salePrice));
             } else {
-                $lineItem->setUnitAmount(Xero::$plugin->withDecimals($this->decimals, $orderItem->price));
+                $lineItem->setUnitAmount(Plugin::getInstance()->withDecimals($this->decimals, $orderItem->price));
             }
 
             // TODO: check for line item adjustments
@@ -204,25 +220,25 @@ class XeroAPI extends Component
         foreach ($adjustments as $adjustment) {
             // shipping adjustments
             if ($adjustment->type == 'shipping') {
-                $lineItem = new LineItem($this->connection);
+                $lineItem = new LineItem($this->getApplication());
                 $lineItem->setAccountCode($this->_client->getOrgSettings()->accountShipping);
                 $lineItem->setDescription($adjustment->name);
                 $lineItem->setQuantity(1);
-                $lineItem->setUnitAmount(Xero::$plugin->withDecimals($this->decimals, $order->getTotalShippingCost()));
+                $lineItem->setUnitAmount(Plugin::getInstance()->withDecimals($this->decimals, $order->getTotalShippingCost()));
                 $invoice->addLineItem($lineItem);
             } elseif ($adjustment->type == 'discount' ) {
-                $lineItem = new LineItem($this->connection);
+                $lineItem = new LineItem($this->getApplication());
                 $lineItem->setAccountCode($this->_client->getOrgSettings()->accountDiscount);
                 $lineItem->setDescription($adjustment->name);
                 $lineItem->setQuantity(1);
-                $lineItem->setUnitAmount(Xero::$plugin->withDecimals($this->decimals, $adjustment->amount));
+                $lineItem->setUnitAmount(Plugin::getInstance()->withDecimals($this->decimals, $adjustment->amount));
                 $invoice->addLineItem($lineItem);
             } elseif ($adjustment->type !== 'tax') {
-                $lineItem = new LineItem($this->connection);
+                $lineItem = new LineItem($this->getApplication());
                 $lineItem->setAccountCode($this->_client->getOrgSettings()->accountAdditionalFees);
                 $lineItem->setDescription($adjustment->name);
                 $lineItem->setQuantity(1);
-                $lineItem->setUnitAmount(Xero::$plugin->withDecimals($this->decimals, $adjustment->amount));
+                $lineItem->setUnitAmount(Plugin::getInstance()->withDecimals($this->decimals, $adjustment->amount));
                 $invoice->addLineItem($lineItem);
             }
         }
@@ -245,15 +261,15 @@ class XeroAPI extends Component
 
             // Would $orderTotal ever be more than $invoice->Total?
             // If so, what should happen with rounding?
-            $orderTotal = Xero::$plugin->withDecimals($this->decimals, $order->getTotalPrice());
+            $orderTotal = Plugin::getInstance()->withDecimals($this->decimals, $order->getTotalPrice());
             if ($invoice->Total > $orderTotal) {
 
                 // caclulate how much rounding to adjust
                 $roundingAdjustment = $orderTotal - $invoice->Total;
-                $roundingAdjustment = Xero::$plugin->withDecimals($this->decimals, $roundingAdjustment);
+                $roundingAdjustment = Plugin::getInstance()->withDecimals($this->decimals, $roundingAdjustment);
 
                 // add rounding to invoice
-                $lineItem = new LineItem($this->connection);
+                $lineItem = new LineItem($this->getApplication());
                 $lineItem->setAccountCode($this->_client->getOrgSettings()->accountRounding);
                 $lineItem->setDescription("Rounding adjustment: Order Total: $".$orderTotal);
                 $lineItem->setQuantity(1);
@@ -289,7 +305,7 @@ class XeroAPI extends Component
             $payment->setInvoice($invoice)
                 ->setAccount($account)
                 ->setReference($order->getLastTransaction()->reference)
-                ->setAmount(Xero::$plugin->withDecimals($this->decimals, $order->getTotalPaid()))
+                ->setAmount(Plugin::getInstance()->withDecimals($this->decimals, $order->getTotalPaid()))
                 ->setDate($order->datePaid);
             $payment->save();
             return $payment;
@@ -322,18 +338,10 @@ class XeroAPI extends Component
 
     public function getAccountByCode($code)
     {
-        $cacheKey = $this->_client->getCacheKey('xero-account-by-code');
-
         try {
-            $cache = Craft::$app->getCache();
             $application = $this->getApplication();
-
-            $account = XeroHelper::unserialize(Account::class, $cache->get($cacheKey), $application);
-            if (empty($account)) {
-                $account = $this->getConnection()->load(Account::class)->where('Code=="' . $code . '"')->first();
-                $cache->set($cacheKey, XeroHelper::serialize($account), self::CACHE_DURATION);
-            }
-        } catch(Exception $e) {
+            $account = $this->getApplication()->load(Account::class)->where('Code=="' . $code . '"')->first();
+        } catch(Throwable $e) {
             $this->_handleException($e);;
         }
 
@@ -359,11 +367,14 @@ class XeroAPI extends Component
     private function _handleException(Throwable $e): void
     {
         $exceptionType = get_class($e);
-        $session = Craft::$app->getSession();
 
         switch($exceptionType) {
         case NotFoundException::class:
-            $session->setError('The resource you requested in Xero could not be found.');
+            throw new Exception('The resource you requested in Xero could not be found.');
+            break;
+
+        case BadRequestException::class:
+            throw new Exception($e->getMessage());
             break;
 
         case ForbiddenException::class:
@@ -371,20 +382,20 @@ class XeroAPI extends Component
             Plugin::getInstance()
                 ->getXeroConnections()
                 ->setDisconnected($this->_client->getConnection());
-            $session->setError('You don\'t have access to this organisation. Please re-authenticate to resume access.');
+            throw new Exception('You don\'t have access to this organisation. Please re-authenticate to resume access.');
             break;
 
         case NotAvailableException::class:
         case OrganisationOfflineException::class:
-            $session->setError('Xero is currently offline. Please try again shortly.');
+            throw new Exception('Xero is currently offline. Please try again shortly.');
             break;
 
         case RateLimitExceededException::class:
-            $session->setError('You have exceeded the Xero API rate limit.');
+            throw new Exception('You have exceeded the Xero API rate limit.');
             break;
 
         default:
-            $session->setError('Something went wrong fetching data from Xero, please try again');
+            throw new Exception('Something went wrong fetching data from Xero, please try again');
             break;
         }
 

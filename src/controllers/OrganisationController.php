@@ -24,6 +24,7 @@ use thejoshsmith\xero\Plugin;
 use thejoshsmith\xero\controllers\BaseController;
 use thejoshsmith\xero\models\OrganisationSettings as OrganisationSettingsModel;
 use Craft;
+use Throwable;
 
 /**
  * Organisation Controller
@@ -45,17 +46,28 @@ class OrganisationController extends BaseController
 
         $connection = $xeroConnections->getCurrentConnection();
 
+        $accounts = null;
+
         // Create a new settings model
         if (empty($orgSettings) && $connection) {
             $orgSettings
                 = OrganisationSettingsModel::fromConnection($connection);
         }
 
+        if ($connection) {
+            try {
+                $accounts = Plugin::getInstance()->getXeroApi()->getAccounts();
+            } catch(Throwable $e) {
+                Craft::$app->getSession()->setError($e->getMessage());
+            }
+        }
+
         return $this->renderTemplate(
             'xero/organisation/_index', compact(
                 'pluginSettings',
                 'orgSettings',
-                'connection'
+                'connection',
+                'accounts'
             )
         );
     }

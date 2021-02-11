@@ -135,7 +135,7 @@ class AuthController extends BaseController
             // Fire a 'afterSaveOAuth' event
             $this->trigger(self::EVENT_AFTER_SAVE_OAUTH, $event);
 
-        } catch (XeroProviderException $xpe) {
+        } catch (XeroProviderException | Throwable $xpe) {
             Craft::error(
                 $xpe->getMessage(),
                 __METHOD__

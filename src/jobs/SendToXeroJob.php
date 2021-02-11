@@ -1,13 +1,12 @@
 <?php
 /**
  * @copyright Copyright (c) Myles Derham.
- * @license https://craftcms.github.io/license/
+ * @license   https://craftcms.github.io/license/
  */
 
 namespace thejoshsmith\xero\jobs;
 
-use thejoshsmith\xero\Xero;
-use thejoshsmith\xero\services\XeroAPIService;
+use thejoshsmith\xero\Plugin;
 
 use Craft;
 use craft\queue\BaseJob;
@@ -40,8 +39,10 @@ class SendToXeroJob extends BaseJob
     {
         $totalSteps = 1;
         for ($step = 0; $step < $totalSteps; $step++) {
-            $order = Commerce::getInstance()->getOrders()->getOrderById($this->orderID);
-            Xero::$plugin->api->sendOrder($order);
+            $order = Commerce::getInstance()
+                ->getOrders()
+                ->getOrderById($this->orderID);
+            Plugin::getInstance()->getXeroApi()->sendOrder($order);
             $this->setProgress($queue, $step / $totalSteps);
         }
     }

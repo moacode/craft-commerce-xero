@@ -10,28 +10,23 @@
 
 namespace thejoshsmith\xero\models;
 
-use thejoshsmith\xero\Xero;
-use thejoshsmith\xero\records\InvoiceRecord;
-
 use craft\base\Model;
-use craft\validators\HandleValidator;
-use craft\commerce\records\Order;
 
-class InvoiceModel extends Model
+use Craft;
+use yii\base\Exception;
+use craft\commerce\records\Order;
+use thejoshsmith\xero\records\Invoice;
+
+class Invoice extends Model
 {
     // Public Properties
     // =========================================================================
 
     public $id;
-
     public $orderId;
-
     public $invoiceId;
-
     public $uid;
-
     public $dateCreated;
-
     public $dateUpdated;
 
 
@@ -52,26 +47,31 @@ class InvoiceModel extends Model
         return $query->one();
     }
 
-
     /**
-     * Saves a cart.
+     * Saves an invoice.
      *
-     * @param AbandonedCart $model The cart to be saved.
-     * @param bool $runValidation should we validate this cart before saving.
-     * @return bool Whether the cart was saved successfully.
+     * @param Invoice $model         The cart to be saved.
+     * @param bool    $runValidation should we validate this cart before saving.
+     *
      * @throws Exception if the cart does not exist.
+     *
+     * @return bool Whether the cart was saved successfully.
      */
-    public function save(InvoiceModel $model, bool $runValidation = true): bool
+    public function save(Invoice $model, bool $runValidation = true): bool
     {
         if ($model->id) {
-            $record = InvoiceRecord::findOne($model->id);
+            $record = Invoice::findOne($model->id);
 
             if (!$record) {
-                throw new Exception(Craft::t('app', 'No Xero invoice record exists with the ID “{id}”',
-                    ['id' => $model->id]));
+                throw new Exception(
+                    Craft::t(
+                        'app', 'No Xero invoice record exists with the ID “{id}”',
+                        ['id' => $model->id]
+                    )
+                );
             }
         } else {
-            $record = new InvoiceRecord();
+            $record = new Invoice();
         }
 
         if ($runValidation && !$model->validate()) {

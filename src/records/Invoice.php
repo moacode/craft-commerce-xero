@@ -4,8 +4,8 @@
  *
  * Xero - Craft Commerce 2 plugin
  *
+ * @copyright 2019 Myles Derham
  * @link      https://www.mylesderham.dev/
- * @copyright Copyright (c) 2019 Myles Derham
  */
 
 namespace thejoshsmith\xero\records;

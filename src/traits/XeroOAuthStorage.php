@@ -60,12 +60,6 @@ trait XeroOAuthStorage
         int $userId = null,
         int $siteId = null
     ) {
-        $connections = [];
-
-        if (empty($xeroTenants)) {
-            return $connections;
-        }
-
         // Get the current logged in user
         if (empty($userId)) {
             $userId = Craft::$app->getUser()->getId();
@@ -76,24 +70,58 @@ trait XeroOAuthStorage
             $siteId = Craft::$app->getSites()->getCurrentSite()->id;
         }
 
-        // $transaction = Craft::$app->getDb()->beginTransaction();
+        $connections = [];
+        $transaction = Craft::$app->getDb()->beginTransaction();
 
-        // try {
+        // Check if the user is re-authing an existing connection
+        if (empty($xeroTenants)) {
+            $connection = Connection::find()
+                ->orderBy('dateCreated DESC')
+                ->one();
+
+            if (empty($connection)) {
+                return $connections;
+            }
+
+            try {
+                $credential = $this->saveAccessToken($accessToken);
+                $connection = $this->saveConnection(
+                    $connection->connectionId,
+                    $connection->getResourceOwner()->one(),
+                    $credential,
+                    $connection->getTenant()->one(),
+                    $userId,
+                    $siteId
+                );
+                $transaction->commit();
+            } catch(\Exception $e) {
+                $transaction->rollBack();
+            }
+
+            return [$connection];
+        }
+
+        try {
             $resourceOwner = $this->saveResourceOwner($identity);
             $credential = $this->saveAccessToken($accessToken);
 
             // Now, save each tenant connection
-        foreach ($xeroTenants as $xeroTenant) {
-            $tenant = $this->saveTenant($xeroTenant);
-            $connections[] = $this->saveConnection(
-                $xeroTenant->id, $resourceOwner, $credential, $tenant, $userId, $siteId
-            );
-        }
+            foreach ($xeroTenants as $xeroTenant) {
+                $tenant = $this->saveTenant($xeroTenant);
+                $connections[] = $this->saveConnection(
+                    $xeroTenant->id,
+                    $resourceOwner,
+                    $credential,
+                    $tenant,
+                    $userId,
+                    $siteId
+                );
+            }
 
-            // $transaction->commit();
-        // } catch(\Exception $e) {
-            // $transaction->rollBack();
-        // }
+            $transaction->commit();
+        } catch(\Exception $e) {
+            $transaction->rollBack();
+        }
 
         return $connections;
     }

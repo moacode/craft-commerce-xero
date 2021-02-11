@@ -13,13 +13,14 @@ use yii\base\Exception;
 
 /**
  * Factory class for building a configured Xero Client
- * 
+ *
  * @author Josh Smith <by@joshthe.dev>
- * @since 1.0.0
+ * @since  1.0.0
  */
-class XeroClient {
+class XeroClient
+{
 
-	/**
+    /**
      * Creates an authenticated Xero client
      *
      * @param integer $siteId Defaults to the current site ID
@@ -56,10 +57,7 @@ class XeroClient {
         $credential = $connection->credential;
         $resourceOwner = $connection->resourceOwner;
 
-        $application = new XeroApplication(
-            $credential->accessToken,
-            $tenant->tenantId
-        );
+        $application = self::buildApplication($credential, $tenant);
 
         return new XeroClientModel(
             $application,
@@ -67,6 +65,14 @@ class XeroClient {
             $credential,
             $resourceOwner,
             $tenant
+        );
+    }
+
+    public static function buildApplication($credential, $tenant)
+    {
+        return new XeroApplication(
+            $credential->accessToken,
+            $tenant->tenantId
         );
     }
 }
