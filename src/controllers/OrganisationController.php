@@ -18,16 +18,12 @@
 
 namespace thejoshsmith\xero\controllers;
 
-use Throwable;
 use yii\web\Response;
 use yii\web\HttpException;
 use thejoshsmith\xero\Plugin;
-use yii\web\BadRequestHttpException;
-use thejoshsmith\xero\records\Connection;
 use thejoshsmith\xero\controllers\BaseController;
 use thejoshsmith\xero\models\OrganisationSettings as OrganisationSettingsModel;
 use Craft;
-use yii\web\NotFoundHttpException;
 
 /**
  * Organisation Controller
@@ -36,15 +32,6 @@ class OrganisationController extends BaseController
 {
     // Public Methods
     // =========================================================================
-
-    /**
-     * @throws HttpException
-     */
-    public function init()
-    {
-        $this->requirePermission('xero-Organisation');
-        parent::init();
-    }
 
     /**
      * Index of tenants
@@ -85,7 +72,7 @@ class OrganisationController extends BaseController
         $data = $this->request->getBodyParams();
 
         // Connection ID is a required parameter
-        if ( empty($data['connectionId']) ) {
+        if (empty($data['connectionId']) ) {
             $this->setFailFlash(Plugin::t('Couldn\'t find the organisation\'s connection.'));
             return null;
         }

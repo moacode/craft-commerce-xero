@@ -13,25 +13,27 @@
 
 namespace thejoshsmith\xero;
 
-use thejoshsmith\xero\jobs\SendToXeroJob;
-use thejoshsmith\xero\models\Settings as SettingsModel;
+use Craft;
+use craft\web\View;
+use yii\base\Event;
+use craft\web\UrlManager;
+use craft\events\TemplateEvent;
+use craft\commerce\elements\Order;
+
+use craft\services\UserPermissions;
 use thejoshsmith\xero\traits\Routes;
+use craft\base\Plugin as CraftPlugin;
 use thejoshsmith\xero\traits\Services;
+use craft\events\RegisterUrlRulesEvent;
+use thejoshsmith\xero\events\OAuthEvent;
+use thejoshsmith\xero\jobs\SendToXeroJob;
+use craft\web\twig\variables\CraftVariable;
+
+use craft\events\RegisterUserPermissionsEvent;
+use thejoshsmith\xero\controllers\AuthController;
 use thejoshsmith\xero\web\assets\SendToXeroAsset;
 use thejoshsmith\xero\web\twig\CraftVariableBehavior;
-
-use Craft;
-use craft\base\Plugin as CraftPlugin;
-use craft\events\RegisterUrlRulesEvent;
-use craft\events\TemplateEvent;
-use craft\web\UrlManager;
-use craft\web\View;
-use craft\web\twig\variables\CraftVariable;
-use yii\base\Event;
-
-use craft\commerce\elements\Order;
-use thejoshsmith\xero\controllers\AuthController;
-use thejoshsmith\xero\events\OAuthEvent;
+use thejoshsmith\xero\models\Settings as SettingsModel;
 
 /**
  * Class Xero
@@ -93,9 +95,14 @@ class Plugin extends CraftPlugin
         // Bootstrap the plugin
         $this->_setPluginComponents();
         $this->_setDependencies();
-        $this->_registerEvents();
         $this->_registerCpRoutes();
-        $this->_registerVariables();
+        $this->_registerPluginEvents();
+
+        // Only register Xero events if we have an active connection
+        if ($this->getXeroApi()->isConnected()) {
+            $this->_registerXeroEvents();
+            $this->_registerVariables();
+        }
 
         Craft::info(
             self::t(
@@ -127,7 +134,7 @@ class Plugin extends CraftPlugin
 
         $ret['label'] = self::t('Xero');
 
-        if (Craft::$app->getUser()->checkPermission('xero-manageOrganisations')) {
+        if (Craft::$app->getUser()->checkPermission('accessPlugin-xero')) {
             $ret['subnav']['organisation'] = [
                 'label' => self::t('Organisation'),
                 'url' => 'xero/organisation'
@@ -170,7 +177,22 @@ class Plugin extends CraftPlugin
      *
      * @return void
      */
-    private function _registerEvents()
+    private function _registerPluginEvents()
+    {
+        // Disconnect other current connections each time the user connects other tenants
+        Event::on(
+            AuthController::class, AuthController::EVENT_AFTER_SAVE_OAUTH, function (OAuthEvent $event) {
+                $this->getXeroConnections()->handleAfterSaveOAuthEvent($event);
+            }
+        );
+    }
+
+    /**
+     * Registers Xero events
+     *
+     * @return void
+     */
+    private function _registerXeroEvents()
     {
         // Registers a CP URL used to send an order to Xero
         Event::on(
@@ -214,7 +236,7 @@ class Plugin extends CraftPlugin
             }
         );
 
-        // Send completed and paid orders of to Xero (30 second delay)
+        // Send completed and paid orders off to Xero (30 second delay)
         Event::on(
             Order::class, Order::EVENT_AFTER_ORDER_PAID, function (Event $e) {
                 Craft::$app->queue->delay(30)->push(
@@ -224,13 +246,6 @@ class Plugin extends CraftPlugin
                         ]
                     )
                 );
-            }
-        );
-
-        // Disconnect other current connections each time the user connects other tenants
-        Event::on(
-            AuthController::class, AuthController::EVENT_AFTER_SAVE_OAUTH, function (OAuthEvent $event) {
-                $this->getXeroConnections()->handleAfterSaveOAuthEvent($event);
             }
         );
     }

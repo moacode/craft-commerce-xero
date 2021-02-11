@@ -12,6 +12,15 @@ class SettingsController extends BaseController
     // =========================================================================
 
     /**
+     * @throws HttpException
+     */
+    public function init()
+    {
+        $this->requireAdmin();
+        parent::init();
+    }
+
+    /**
      * Commerce Settings Form
      */
     public function actionEdit(): Response

@@ -30,7 +30,6 @@ use craft\helpers\UrlHelper;
 use Throwable;
 use yii\web\HttpException;
 use yii\web\Response;
-use yii\web\ServerErrorHttpException;
 
 /**
  * Auth Controller
@@ -48,9 +47,7 @@ class AuthController extends BaseController
      */
     public function init()
     {
-        $this->requirePermission('xero-Auth');
         parent::init();
-
         \Yii::$app->response->format = \yii\web\Response::FORMAT_JSON;
     }
 

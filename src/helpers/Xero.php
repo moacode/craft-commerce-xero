@@ -27,18 +27,18 @@ class Xero
     }
 
      /**
-     * Serializes a Xero collection of models
-     * Note: this is necessary as each model has a reference to the
-     * Guzzle client which contains anonymous functions, and therefore
-     * we can't serialize it into cache "as is".
-     *
-     * @param Collection $collection A collection of models
-     *
-     * @see https://github.com/calcinai/xero-php/issues/734
-     *
-     * @return array
-     */
-    public function serialize(Collection $collection): array
+      * Serializes a Xero collection of models
+      * Note: this is necessary as each model has a reference to the
+      * Guzzle client which contains anonymous functions, and therefore
+      * we can't serialize it into cache "as is".
+      *
+      * @param Collection $collection A collection of models
+      *
+      * @see https://github.com/calcinai/xero-php/issues/734
+      *
+      * @return array
+      */
+    public static function serialize(Collection $collection): array
     {
         $serialized = [];
 
@@ -52,15 +52,15 @@ class Xero
     /**
      * Used to unserialize cached data
      *
-     * @param string            $class          Name of the Xero API model class
-     * @param array             $collection     Collection of data to unserialize
-     * @param XeroApplication   $application    Collection of data to unserialize
+     * @param string          $class       Name of the Xero API model class
+     * @param array           $collection  Collection of data to unserialize
+     * @param XeroApplication $application Collection of data to unserialize
      *
      * @see https://github.com/calcinai/xero-php/issues/734
      *
      * @return Collection|null
      */
-    public function unserialize(string $class, $collection, XeroApplication $application): ?Collection
+    public static function unserialize(string $class, $collection, XeroApplication $application): ?Collection
     {
         if (!is_iterable($collection)) {
             return null;

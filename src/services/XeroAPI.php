@@ -17,11 +17,10 @@ use yii\base\Exception;
 
 use craft\base\Component;
 use thejoshsmith\xero\Plugin;
-use thejoshsmith\xero\helpers\Xero as XeroHelper;
 use craft\commerce\elements\Order;
 use XeroPHP\Models\Accounting\Account;
-
 use XeroPHP\Models\Accounting\Contact;
+
 use XeroPHP\Models\Accounting\Invoice;
 use XeroPHP\Models\Accounting\Payment;
 use thejoshsmith\xero\models\XeroClient;
@@ -29,6 +28,11 @@ use XeroPHP\Application as XeroApplication;
 use thejoshsmith\xero\records\InvoiceRecord;
 use XeroPHP\Models\Accounting\Invoice\LineItem;
 use XeroPHP\Remote\Exception\ForbiddenException;
+use thejoshsmith\xero\helpers\Xero as XeroHelper;
+use thejoshsmith\xero\records\Connection;
+use XeroPHP\Remote\Exception\NotAvailableException;
+use XeroPHP\Remote\Exception\RateLimitExceededException;
+use XeroPHP\Remote\Exception\OrganisationOfflineException;
 
 /**
  * @author  Myles Derham
@@ -69,6 +73,23 @@ class XeroAPI extends Component
     }
 
     /**
+     * Returns whether there's an active connection
+     *
+     * @author Josh Smith <by@joshthe.dev>
+     * @since  1.0.0
+     *
+     * @return Connection
+     */
+    public function isConnected(): bool
+    {
+        $connection = $this->_client->getConnection();
+
+        return !empty($connection)
+            && $connection->enabled
+            && $connection->status !== Connection::STATUS_DISCONNECTED;
+    }
+
+    /**
      * Returns the Xero client application
      *
      * @author Josh Smith <by@joshthe.dev>
@@ -90,11 +111,6 @@ class XeroAPI extends Component
 
         } catch (Exception $e) {
             throw new Exception('Something went wrong establishing a Xero connection, check there\'s an active connection.');
-
-            Craft::error(
-                $e->getMessage(),
-                __METHOD__
-            );
         }
 
         return $application;
@@ -149,11 +165,6 @@ class XeroAPI extends Component
             return $contact;
         } catch(Throwable $e) {
             $this->_handleException($e);
-
-            Craft::error(
-                $e->getMessage(),
-                __METHOD__
-            );
         }
         return false;
     }
@@ -264,11 +275,6 @@ class XeroAPI extends Component
 
         } catch(Throwable $e) {
             $this->_handleException($e);
-
-            Craft::error(
-                $e->getMessage(),
-                __METHOD__
-            );
         }
 
         return false;
@@ -289,11 +295,6 @@ class XeroAPI extends Component
             return $payment;
         } catch(Throwable $e) {
             $this->_handleException($e);
-
-            Craft::error(
-                $e->getMessage(),
-                __METHOD__
-            );
         }
         return false;
     }
@@ -314,10 +315,6 @@ class XeroAPI extends Component
 
         } catch(Throwable $e) {
             $this->_handleException($e);
-            Craft::error(
-                $e->getMessage(),
-                __METHOD__
-            );
         }
 
         return $accounts ?? [];
@@ -337,11 +334,7 @@ class XeroAPI extends Component
                 $cache->set($cacheKey, XeroHelper::serialize($account), self::CACHE_DURATION);
             }
         } catch(Exception $e) {
-            $this->_handleException($e);
-            Craft::error(
-                $e->getMessage(),
-                __METHOD__
-            );
+            $this->_handleException($e);;
         }
 
         return $account ?? null;
@@ -369,6 +362,10 @@ class XeroAPI extends Component
         $session = Craft::$app->getSession();
 
         switch($exceptionType) {
+        case NotFoundException::class:
+            $session->setError('The resource you requested in Xero could not be found.');
+            break;
+
         case ForbiddenException::class:
             // revoke connection
             Plugin::getInstance()
@@ -377,9 +374,23 @@ class XeroAPI extends Component
             $session->setError('You don\'t have access to this organisation. Please re-authenticate to resume access.');
             break;
 
+        case NotAvailableException::class:
+        case OrganisationOfflineException::class:
+            $session->setError('Xero is currently offline. Please try again shortly.');
+            break;
+
+        case RateLimitExceededException::class:
+            $session->setError('You have exceeded the Xero API rate limit.');
+            break;
+
         default:
             $session->setError('Something went wrong fetching data from Xero, please try again');
             break;
         }
+
+        Craft::error(
+            $e->getMessage(),
+            'xero-api'
+        );
     }
 }
