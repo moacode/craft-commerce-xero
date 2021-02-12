@@ -15,8 +15,8 @@
     {# Xero isn't setup? Direct the user to do that step first #}
     {% if not pluginSettings.xeroClientId and not pluginSettings.xeroClientSecret %}
 
-        <h2>Further Setup Required</h2>
-        <p>You need to configure this plugin with a Xero app before you can link a Xero organisation.</p>
+        <h2>Setup Required</h2>
+        <p>You need to configure this plugin with a <a href="https://developer.xero.com/documentation/getting-started/getting-started-guide">Xero app</a> before you can link a Xero organisation.</p>
         {% if devMode %}
             <a href="{{cpUrl('xero/settings')}}" class="btn submit">Update Settings</a>
         {% else %}
@@ -195,13 +195,15 @@
                 </div>
             {% endblock %}
         </div>
-        <a href="javascript:;" data-connectionId="{{ connection.id }}" data-icon="alert" class="btn icon dashed warning right js--xero-disconnect">Disconnect</a>
+        {% if connection.status == 'connected' %}
+            <a href="javascript:;" data-connectionId="{{ connection.id }}" data-icon="alert" class="btn icon dashed warning right js--xero-disconnect">Disconnect</a>
+        {% endif %}
     {% endif %}
 {% endblock %}
 
 {% block actionButton %}
     {% if connection %}
-        <a href="{{ cpUrl('xero/auth') }}" data-icon="plus" class="btn xero icon">Connect to Xero</a>
+        <a href="{{ cpUrl('xero/auth') }}" data-icon="plus" class="btn xero icon js--xero-connect">Connect to Xero</a>
         {{ parent() }}
     {% endif %}
 {% endblock %}

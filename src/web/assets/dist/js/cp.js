@@ -6,6 +6,7 @@
 
 const connectionSelect = document.getElementById('connectionId');
 const disconnectButton = document.querySelector('.js--xero-disconnect');
+const connectButton = document.querySelector('.js--xero-connect');
 
 /**
  * Attaches a change event listener to a connections select menu
@@ -14,6 +15,7 @@ const disconnectButton = document.querySelector('.js--xero-disconnect');
  */
 if (connectionSelect != null) {
     connectionSelect.addEventListener('change', () => {
+      Craft.cp.displayNotice('Loading...');
       updateSelectedConnection(connectionSelect.value)
         .then(response => response.json())
         .then(() => window.location.reload());
@@ -26,10 +28,17 @@ if (connectionSelect != null) {
 if (disconnectButton != null) {
   disconnectButton.addEventListener('click', () => {
     if (confirm('Are you sure you want to disconnect this Xero organisation?')) {
+      Craft.cp.displayNotice('Disconnecting...');
       disconnectXero(disconnectButton.dataset.connectionid)
         .then(response => response.json())
         .then(() => window.location.reload());
     }
+  });
+}
+
+if (connectButton != null) {
+  connectButton.addEventListener('click', () => {
+    Craft.cp.displayNotice('Loading...');
   });
 }
 
