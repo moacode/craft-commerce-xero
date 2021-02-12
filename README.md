@@ -1,17 +1,43 @@
 <p align="center"><img src="./src/icon.svg" width="100" height="100" alt="Xero plugin for Craft Commerce 2"></p>
 
-# Xero plugin for Craft Commerce 2
+# Xero plugin for Craft Commerce 2 & 3
 
 ## Overview
-**NOTE: 👨‍💻This plugin is stable and fine to use in production however it's in active development so expect frequent updates while new features are added until v1.0.0.**
-
 This plugin allows you to automatically send Commerce invoices into Xero including contacts, payments and even inventory updates.
 
-You'll need to create a [private application](https://developer.xero.com) within Xero and then connect via OAuth using a consumer key, consumer secret and private (self signed) certificate.
+### Installation
+`composer require thejoshsmith/craft-commerce-xero`
 
-You'll also need a Certificate store which can be downloaded from this repo for ease of use. It's generated from Firefox's own Cert store and updated often. [see here](https://github.com/bagder/ca-bundle)
+### Getting Started
+You'll need to sign up for a free Xero account and add a OAuth 2.0 Xero App. You can view Xero's <a href="https://developer.xero.com/documentation/getting-started/getting-started-guide">getting started guide here</a>.
 
-Once connected the plugin allows you to map your Chart of Accounts (Account Codes) including:
+<img width="50%" src="./src/web/assets/images/xero-app.png">
+
+Once the plugin is installed, you need to configure the Xero app connection settings from the `Settings` nav item. Simply enter the Client ID and Secret from your Xero app and click save.
+
+<img src="./src/web/assets/images/settings.png">
+
+> Note: It's recommended to set the Client ID and Secret to environment variables in your .env file
+
+Finally, the OAuth callback URL needs to be added to your Xero app including any staging or production domains.
+
+### Connecting an Organisation
+From the Organisations nav item, click the "Connect to Xero" button to intiate a connection to Xero.
+
+<img src="./src/web/assets/images/connect.png">
+
+As Xero is now a multi-tenated system, you can link multiple organisations and choose between them from the drop down menu.
+
+<img src="./src/web/assets/images/organisation.png">
+
+You can connect additional organisations using the "Connect to Xero" button and disconnect the current organisation using the "Disconnect" button at the bottom.
+
+Changing the current organisation using the drop down will automatically reload the page with the relevant settings.
+
+**Note: Only one organisation will be synced to at any one time**
+
+### Organisation Settings
+Once an organisation is connected the plugin allows you to map your Chart of Accounts (Account Codes) including:
 
 - sales revenue
 - accounts receivable
@@ -58,10 +84,6 @@ Below is a list of fields that is sent to Xero. In future versions hooks/events 
 ### Rounding
 Due to how different systems calculate rounding if for whatever reason the order total is different to what Xero calculates, an additional line item to account for rounding is added in Xero. Please ensure you have this account code selected under settings.
 
-### Multi environment settings
-If you require different settings per environment the plugin ships with an example config file `xero-config.php` which should be copied into your config folder and renamed to `xero.php`. Once this is in place you r can define all the plugins settings for each environment.
-Note if this file exists all settings will then be read from this file instead of whats in Craft.
-
 > More detailed documentation to coming soon.
 
 ## Feature requests 🙏
@@ -74,10 +96,5 @@ As this plugin is still in active development now is a good time to suggest new 
 - Refunds support
 - Admin features like element actions, widgets and different syncing methods
 
-## Installation
-Either by the plugin store (search "Xero") or via composer.
-
-`"thejoshsmith/craft-commerce-xero": "^0.9.3"`
-
 ## Requirements
-This plugin requires Craft CMS 3.1.0 or later and Craft Commerce 2.0 or later.
+This plugin requires Craft CMS 3.1.0 or later and Craft Commerce 2.0|3.0 or later.
