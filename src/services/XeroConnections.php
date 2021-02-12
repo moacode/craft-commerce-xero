@@ -57,9 +57,12 @@ class XeroConnections extends Component
      *
      * @return Connection|null
      */
-    public function getCurrentConnection(): ?Connection
+    public function getCurrentConnection($with = []): ?Connection
     {
-        return Connection::find()->where(['selected' => 1])->one();
+        return Connection::find()
+            ->with($with)
+            ->where(['selected' => 1])
+            ->one();
     }
 
     /**
