@@ -2,6 +2,7 @@
 
 namespace thejoshsmith\xero\factories;
 
+use thejoshsmith\xero\Plugin;
 use thejoshsmith\xero\models\XeroClient as XeroClientModel;
 use thejoshsmith\xero\records\Connection;
 
@@ -35,17 +36,10 @@ class XeroClient
         array $where = []
     ): XeroClientModel {
 
-        if (empty($siteId)) {
-            $siteId = Craft::$app->getSites()->getCurrentSite()->id;
-        }
-
         // Fetch the connection record, eager loading required access info
-        $connection = Connection::find()
-            ->where(
-                array_merge(['siteId' => $siteId], $where)
-            )->with(['credential', 'resourceOwner', 'tenant'])
-            ->orderBy('dateCreated DESC')
-            ->one();
+        $connection = Plugin::getInstance()
+            ->getXeroConnections()
+            ->getCurrentConnection(['credential', 'resourceOwner', 'tenant']);
 
         if (empty($connection)) {
             throw new Exception('No connection record found');
