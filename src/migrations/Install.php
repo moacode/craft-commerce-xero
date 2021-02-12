@@ -111,6 +111,7 @@ class Install extends Migration
                 'userId' => $this->integer()->notNull(),
                 'siteId' => $this->integer()->notNull(),
                 'settings' => $this->longText()->notNull(),
+                'selected' => $this->boolean()->notNull()->defaultValue(false),
                 'enabled' => $this->boolean()->notNull()->defaultValue(false),
                 'status' => $this->enum('status', ['connected', 'disconnected', 'expired'])
                     ->notNull()

@@ -94,6 +94,7 @@ class m210206_084155_xero_auth_tables extends Migration
                     'userId' => $this->integer()->notNull(),
                     'siteId' => $this->integer()->notNull(),
                     'settings' => $this->longText()->notNull(),
+                    'selected' => $this->boolean()->notNull()->defaultValue(false),
                     'enabled' => $this->boolean()->notNull()->defaultValue(false),
                     'status' => $this->enum(
                         'status', [

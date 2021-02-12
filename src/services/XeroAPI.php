@@ -18,7 +18,6 @@ use yii\base\Exception;
 use craft\base\Component;
 use thejoshsmith\xero\Plugin;
 use craft\commerce\elements\Order;
-use thejoshsmith\xero\factories\XeroClient as FactoriesXeroClient;
 use XeroPHP\Models\Accounting\Account;
 use XeroPHP\Models\Accounting\Contact;
 
@@ -339,7 +338,6 @@ class XeroAPI extends Component
     public function getAccountByCode($code)
     {
         try {
-            $application = $this->getApplication();
             $account = $this->getApplication()->load(Account::class)->where('Code=="' . $code . '"')->first();
         } catch(Throwable $e) {
             $this->_handleException($e);;

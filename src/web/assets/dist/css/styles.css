@@ -1,0 +1,13 @@
+.btn.xero {
+	background-color: #0c82a9;
+	color: white !important;
+}
+
+.btn.xero::before {
+	color: white !important;
+}
+
+.btn.xero:hover {
+	background-color: #0a7091;
+	color: white;
+}

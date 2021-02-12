@@ -4,7 +4,6 @@ namespace thejoshsmith\xero\factories;
 
 use thejoshsmith\xero\models\XeroClient as XeroClientModel;
 use thejoshsmith\xero\records\Connection;
-use thejoshsmith\xero\models\OrganisationSettings;
 
 use XeroPHP\Application as XeroApplication;
 
@@ -19,7 +18,6 @@ use yii\base\Exception;
  */
 class XeroClient
 {
-
     /**
      * Creates an authenticated Xero client
      *

@@ -4,6 +4,7 @@ namespace thejoshsmith\xero\records;
 
 use thejoshsmith\xero\Plugin;
 use craft\db\ActiveRecord;
+use League\OAuth2\Client\Token\AccessToken;
 use League\OAuth2\Client\Token\AccessTokenInterface;
 
 /**
@@ -44,6 +45,24 @@ class Credential extends ActiveRecord
         $credential->scope = $accessToken->getValues()['scope'];
 
         return $credential;
+    }
+
+    /**
+     * Creates an Access Token from a credential record
+     *
+     * @param  Credential $credential Credential Record
+     *
+     * @return AccessToken
+     */
+    public static function toAccessToken(Credential $credential): AccessTokenInterface
+    {
+        $accessToken = new AccessToken([
+            'access_token'      => $credential->accessToken,
+            'refresh_token'     => $credential->refreshToken,
+            'expires_in'        => strtotime($credential->expires)
+        ]);
+
+        return $accessToken;
     }
 
     public function rules()

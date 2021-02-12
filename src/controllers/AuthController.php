@@ -95,9 +95,8 @@ class AuthController extends BaseController
             exit('Invalid state');
         }
 
-        // Try to get an access token (using the authorization code grant)
         try {
-
+            // Try to get an access token (using the authorization code grant)
             $token = $xeroOAuthService->getAccessToken(['code' => $params['code']]);
 
             // Decode information from the access token
@@ -108,11 +107,7 @@ class AuthController extends BaseController
 
             // Get the tenants that this user is authorized to access
             // and filter them for this authentication event
-            $tenants = $xeroOAuthService->getTenants(
-                $token, [
-                'authEventId' => $jwt->authentication_event_id
-                ]
-            );
+            $tenants = $xeroOAuthService->getTenants($token);
 
             // Fire a 'beforeSaveOAuth' event
             $event = new OAuthEvent(

@@ -30,6 +30,7 @@ use craft\web\twig\variables\CraftVariable;
 
 use thejoshsmith\xero\controllers\AuthController;
 use thejoshsmith\xero\web\assets\SendToXeroAsset;
+use thejoshsmith\xero\web\assets\XeroCPAsset;
 use thejoshsmith\xero\web\twig\CraftVariableBehavior;
 use thejoshsmith\xero\models\Settings as SettingsModel;
 

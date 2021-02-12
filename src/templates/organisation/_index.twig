@@ -1,3 +1,5 @@
+{% do view.registerAssetBundle("thejoshsmith\\xero\\web\\assets\\XeroCPAsset") %}
+
 {% extends "_layouts/cp" %}
 {% import "_includes/forms" as forms %}
 
@@ -9,7 +11,6 @@
 
 {% block content %}
     {{ actionInput('xero/organisation/save-settings') }}
-    {{ hiddenInput('connectionId', connection.id ?? null) }}
 
     {# Xero isn't setup? Direct the user to do that step first #}
     {% if not pluginSettings.xeroClientId and not pluginSettings.xeroClientSecret %}
@@ -23,7 +24,7 @@
         {% endif %}
 
     {# No connections? Provide a button to setup the first connection #}
-    {% elseif not connection %}
+    {% elseif not connections|length %}
 
         <h2>Connect to Xero</h2>
         <p>To get started, you'll need to connect your Xero organisation to Craft. Use the button below to start the authentication process.</p>
@@ -132,7 +133,6 @@
                 id: 'enabled',
                 name: 'enabled',
                 on: connection.enabled,
-
             }) }}
         </div>
 
@@ -156,12 +156,22 @@
             }) }}
         </div>
 
+        <div class="meta">
+            {{ forms.selectField({
+                label: "Organisation",
+                id: "connectionId",
+                name: "connectionId",
+                instructions: "This is the selected Xero organisation that Commerce will send financial data to.",
+                options: connections|map(connection => {
+                    label: connection.tenant.tenantName,
+                    value: connection.id
+                }),
+                value: connection.id
+            }) }}
+        </div>
+
         <div id="meta-details" class="meta read-only">
             {% block meta %}
-                <div class="data">
-                    <h5 class="value"><strong>{{ tenant.tenantName }}</strong></h5>
-                    <a href="{{ cpUrl('xero/auth') }}">Change?</a>
-                </div>
                 <div class="data">
                     <h5 class="heading">{{ 'Name'|t('app') }}</h5>
                     <div class="value">{{ resourceOwner.givenName ~ ' ' ~ resourceOwner.familyName }}</div>
@@ -171,17 +181,27 @@
                     <div class="value">{{ resourceOwner.email }}</div>
                 </div>
                 <div class="data">
-                    <h5 class="heading">{{ 'Status'|t('app') }}</h5>
-                    <div id="status-value" class="value"><span class="status {{ connection.status == 'connected' ? 'green' : 'red' }}"></span>{% if connection.status == 'connected' %}Connected{% else %}Disconnected{% endif %}</div>
+                    <h5 class="heading">{{ 'Expires'|t('app') }}</h5>
+                    <div class="value">{{ connection.credential.expires|date('jS M Y H:ia') }}</div>
                 </div>
-                {% if connection.status == 'disconnected' %}
-                    <div class="data">
-                        <div class="value">
-                        <a href="{{ cpUrl('xero/auth') }}" data-icon="refresh" class="btn small icon">Reconnect</a>
-                        </div>
+                <div class="data">
+                    <h5 class="heading">{{ 'Status'|t('app') }}</h5>
+                    <div id="status-value" class="value">
+                        <span class="status {{ connection.status == 'connected' ? 'green' : 'red' }}"></span>{% if connection.status == 'connected' %}Connected{% else %}Disconnected{% endif %}
+                        {% if connection.status == 'disconnected' %}
+                            <a href="{{ cpUrl('xero/auth') }}" class="btn small icon right">Reconnect</a>
+                        {% endif %}
                     </div>
-                {% endif %}
+                </div>
             {% endblock %}
         </div>
+        <a href="javascript:;" data-connectionId="{{ connection.id }}" data-icon="alert" class="btn icon dashed warning right js--xero-disconnect">Disconnect</a>
+    {% endif %}
+{% endblock %}
+
+{% block actionButton %}
+    {% if connection %}
+        <a href="{{ cpUrl('xero/auth') }}" data-icon="plus" class="btn xero icon">Connect to Xero</a>
+        {{ parent() }}
     {% endif %}
 {% endblock %}

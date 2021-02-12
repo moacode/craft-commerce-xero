@@ -154,7 +154,7 @@ trait XeroOAuth
      * 
      * @return array
      */
-    public function getTenants(AccessTokenInterface $accessToken, array $params = []): array
+    public function getTenants(AccessTokenInterface $accessToken, array $params = null): array
     {
         return $this->getProvider()->getTenants($accessToken, $params);
     }
@@ -167,7 +167,7 @@ trait XeroOAuth
      *
      * @return ResourceOwner
      */
-    public function getResourceOwner(AccessTokenInterface $accessToken, array $params = []): XeroResourceOwner
+    public function getResourceOwner(AccessTokenInterface $accessToken, array $params = null): XeroResourceOwner
     {
         return $this->getProvider()->getResourceOwner($accessToken, $params);
     }

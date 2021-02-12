@@ -19,7 +19,6 @@
 namespace thejoshsmith\xero\controllers;
 
 use yii\web\Response;
-use yii\web\HttpException;
 use thejoshsmith\xero\Plugin;
 use thejoshsmith\xero\controllers\BaseController;
 use thejoshsmith\xero\models\OrganisationSettings as OrganisationSettingsModel;
@@ -45,6 +44,7 @@ class OrganisationController extends BaseController
         $xeroConnections = Plugin::getInstance()->getXeroConnections();
 
         $connection = $xeroConnections->getCurrentConnection();
+        $connections = $xeroConnections->getAllConnections();
 
         $accounts = null;
 
@@ -67,9 +67,30 @@ class OrganisationController extends BaseController
                 'pluginSettings',
                 'orgSettings',
                 'connection',
+                'connections',
                 'accounts'
             )
         );
+    }
+
+    public function actionSaveSelectedOrganisation()
+    {
+        $this->requirePostRequest();
+
+        // Connection ID is a required parameter
+        if (empty($data['connectionId']) ) {
+            $this->setFailFlash(Plugin::t('Couldn\'t find the organisation\'s connection.'));
+            return null;
+        }
+
+        $xeroConnections = Plugin::getInstance()->getXeroConnections();
+        $connection = $xeroConnections->getConnectionById($data['connectionId']);
+
+        $connection->selected = 1;
+        $connection->save();
+
+        $this->setSuccessFlash(Plugin::t('Organisation selected was successfully saved.'));
+        return null;
     }
 
     /**
@@ -89,9 +110,6 @@ class OrganisationController extends BaseController
             return null;
         }
 
-        $xeroConnections = Plugin::getInstance()->getXeroConnections();
-        $connection = $xeroConnections->getCurrentConnection();
-
         $orgSettings = new OrganisationSettingsModel();
         $orgSettings->attributes = $data;
 
@@ -105,9 +123,12 @@ class OrganisationController extends BaseController
             return null;
         }
 
-        $connection->id = $data['connectionId'];
+        $xeroConnections = Plugin::getInstance()->getXeroConnections();
+        $connection = $xeroConnections->getConnectionById($data['connectionId']);
+
         $connection->enabled = $data['enabled'] ?? false;
         $connection->settings = $orgSettings->attributes;
+        $connection->selected = 1;
         $connection->save();
 
         $this->setSuccessFlash(Plugin::t('Organisation Settings saved.'));

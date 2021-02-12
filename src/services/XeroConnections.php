@@ -17,11 +17,9 @@ use craft\base\Component;
 use craft\db\ActiveQuery;
 use League\OAuth2\Client\Token\AccessTokenInterface;
 use thejoshsmith\xero\Plugin;
-use thejoshsmith\xero\records\Tenant;
 use thejoshsmith\xero\events\OAuthEvent;
 use thejoshsmith\xero\records\Connection;
 use thejoshsmith\xero\records\Credential;
-use thejoshsmith\xero\records\ResourceOwner;
 
 /**
  * @author  Josh Smith <by@joshthe.dev>
@@ -32,71 +30,58 @@ class XeroConnections extends Component
     /**
      * Returns whether there's any active connections for this site
      *
-     * @param int $siteId Site ID
-     *
      * @return boolean
      */
-    public function hasConnections(int $siteId = null): bool
+    public function hasConnections(): bool
     {
-        return $this->getNumberOfConnections($siteId) > 0;
+        return $this->getNumberOfConnections() > 0;
     }
 
     /**
      * Returns all connections
      *
-     * @param integer $siteId Site ID
+     * @param string $orderBy Order constraint
      *
      * @return array
      */
-    public function getAllConnections(): array
+    public function getAllConnections(string $orderBy = 'tenantName'): array
     {
-        return Connection::find()->all();
+        return Connection::find()
+            ->innerJoinWith('tenant')
+            ->orderBy($orderBy)
+        ->all();
     }
 
     /**
      * Returns the current connection object
      *
-     * @param integer $siteId Site ID
-     *
      * @return Connection|null
      */
-    public function getCurrentConnection(int $siteId = null): ?Connection
+    public function getCurrentConnection(): ?Connection
     {
-        return $this->getSiteConnectionsQuery($siteId)->one();
+        return Connection::find()->where(['selected' => 1])->one();
     }
 
     /**
      * Returns the number of connections for the passed site
      *
-     * @param integer $siteId Site ID
-     *
      * @return integer
      */
-    public function getNumberOfConnections(int $siteId = null): int
+    public function getNumberOfConnections(): int
     {
-        return $this->getSiteConnectionsQuery($siteId)->count();
+        return Connection::find()->count();
     }
 
     /**
-     * Disables all connections for a particular site
-     *
-     * @param integer $siteId Site ID
+     * Disables all connections
      *
      * @return void
      */
-    public function disableAllConnections(int $siteId = null): void
+    public function disableAllConnections(): void
     {
-        if (empty($siteId)) {
-            $siteId = Craft::$app->getSites()->getCurrentSite()->id;
-        }
-
-        Connection::updateAll(
-            [
+        Connection::updateAll([
             'status' => Connection::STATUS_DISCONNECTED
-            ], [
-            'siteId' => $siteId
-            ]
-        );
+        ]);
     }
 
     /**
@@ -109,24 +94,57 @@ class XeroConnections extends Component
      */
     public function handleAfterSaveOAuthEvent(OAuthEvent $event): void
     {
-        // No new tenants have been authorised, so carry on
+        // Return early if there's no connected tenants, there's nothing we can do.
         if (count($event->tenants) === 0) {
             return;
         }
 
-        $tenantConnectionIds = array_column($event->tenants, 'id');
-        $currentTenantConnections = Connection::find()->where(
-            [
-            'NOT IN', 'connectionId', $tenantConnectionIds
-            ]
-        )->all() ?? [];
-
-        // Disconnect all currently connected tenants and remove records
-        foreach ($currentTenantConnections as $connection) {
-            $this->cleanUpConnection($event->token, $connection);
+        // Check if the user has authorised a specific tenant
+        // If so, update the DB to reflect that decision
+        $selectedTenant = null;
+        foreach($event->tenants as $tenant) {
+            if ($tenant->authEventId === $event->jwt->authentication_event_id) {
+                $selectedTenant = $tenant;
+            }
         }
 
+        // If there's no matching tenant from the auth event Id,
+        // just pick the first one in the array.
+        //
+        // This scenario could happen if the app was authorised with
+        // existing organisations on a non-production environment and then
+        // deployed without the connection database records.
+        if (empty($selectedTenant)) {
+             $selectedTenant = $event->tenants[0];
+        }
+
+        // Find the connection related to the selected tenant
+        $connection = Connection::find()
+            ->innerJoinWith('tenant')
+            ->where([
+                'xero_tenants.tenantId' => $selectedTenant->tenantId
+            ])->one();
+
+        if (empty($connection)) {
+            throw new Exception(
+                'Unable to set connection as selected as it could not be found.
+            ');
+        }
+
+        $this->markAsSelected($connection->id);
         $this->removeOrphanedCredentials();
+    }
+
+    /**
+     * Returns a connection record
+     *
+     * @param  int    $id Id of the connection to fetch
+     *
+     * @return Connection
+     */
+    public function getConnectionById(int $id): Connection
+    {
+        return Connection::find()->where(['id' => $id])->one();
     }
 
     /**
@@ -144,6 +162,7 @@ class XeroConnections extends Component
             ->getXeroOAuth()
             ->disconnect($token, $connection->connectionId);
         $connection->delete();
+        $this->removeOrphanedCredentials();
     }
 
     /**
@@ -181,18 +200,60 @@ class XeroConnections extends Component
     }
 
     /**
-     * Returns a connection query filtered for the current site
+     * Sets the selected connection
      *
-     * @param integer $siteId Site ID
+     * @param int $connectionId ID of the connection to mark as selected (not the Xero connection ID)
      *
-     * @return ActiveQuery
+     * @return Connection
      */
-    protected function getSiteConnectionsQuery(int $siteId = null): ActiveQuery
+    public function markAsSelected(int $connectionId): Connection
     {
-        if (empty($siteId)) {
-            $siteId = Craft::$app->getSites()->getCurrentSite()->id;
+        Connection::updateAll([
+            'selected' => 0
+        ]);
+
+        $connection = $this->getConnectionById($connectionId);
+
+        if (empty($connection)) {
+            throw new Exception('Connection not found.');
         }
 
-        return Connection::find()->where(['siteId' => $siteId]);
+        $connection->selected = 1;
+        $connection->save();
+
+        return $connection;
+    }
+
+    /**
+     * Disconnects the passed connection from Xero
+     *
+     * @param  string $connectionId Connection ID
+     * @return void
+     */
+    public function disconnectFromXero(int $connectionId): void
+    {
+        $connection = $this->getConnectionById($connectionId);
+        $credential = $connection->getCredential()->one();
+
+        if (empty($credential)) {
+            throw new Exception('Credential not found.');
+        }
+
+        $accessToken = Credential::toAccessToken($credential);
+
+        // Disconnect and clean up records
+        $this->cleanUpConnection($accessToken, $connection);
+    }
+
+    /**
+     * Returns the last updated or created connection record
+     *
+     * @return Connection
+     */
+    public function getLastCreatedOrUpdated(): Connection
+    {
+        return Connection::find()
+            ->orderBy('dateUpdated DESC, dateCreated DESC')
+            ->one();
     }
 }

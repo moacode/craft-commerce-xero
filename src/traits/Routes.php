@@ -48,6 +48,8 @@ trait Routes
             UrlManager::class, UrlManager::EVENT_REGISTER_CP_URL_RULES, function (RegisterUrlRulesEvent $event) {
                 $event->rules['xero'] = ['template' => 'xero/index'];
                 $event->rules['xero/organisation'] = 'xero/organisation/index';
+                $event->rules['xero/connections/update'] = 'xero/connections/update';
+                $event->rules['xero/connections/disconnect'] = 'xero/connections/disconnect';
                 $event->rules['xero/settings'] = 'xero/settings/edit';
                 $event->rules['xero/auth'] = 'xero/auth/index';
             }
