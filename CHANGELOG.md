@@ -1,5 +1,13 @@
 # Release Notes for Craft Commerce Xero
 
+## 1.0.0-beta.2 - 2021-02-13
+### Changed
+- Users can now select from a list of organisations
+- Improved multi-tenant support
+- Users can now disconnect organisations programatically
+### Fixed
+- Fixed a bug where the current connection wasn't returning the right organisation
+
 ## 1.0.0-beta.1 - 2021-02-12
 ### Changed
 - Added support for Xero OAuth 2.0.
