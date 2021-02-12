@@ -16,7 +16,7 @@ $(document).ready(function(){
         var btnOriginalText = 'Send invoice to Xero';
     }
     
-    $('#details .order-info-box').before('<a href="javascript:;" class="send-to-xero-btn submit btn small">'+btnOriginalText+'</a>');
+    $('#order-actions .order-flex').eq(0).prepend('<a href="javascript:;" class="send-to-xero-btn submit btn">'+btnOriginalText+'</a><div class="spacer"></div>');
     
     // register click event on btn (if order isn't in Xero)
     if (!sentToXero) {
@@ -32,6 +32,7 @@ $(document).ready(function(){
                     console.log(data);
                 })
                 .fail(function(e) {
+                    Craft.cp.displayError(e.responseText);
                     btn.text('Unable to send Invoice');
                 });
             }
