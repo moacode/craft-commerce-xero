@@ -34,7 +34,7 @@ You can connect additional organisations using the "Connect to Xero" button and 
 
 Changing the current organisation using the drop down will automatically reload the page with the relevant settings.
 
-**Note: Only one organisation will be synced to at any one time**
+> Note: Only the currently selected organisation will be synced with Commerce
 
 ### Organisation Settings
 Once an organisation is connected the plugin allows you to map your Chart of Accounts (Account Codes) including:
@@ -84,7 +84,7 @@ Below is a list of fields that is sent to Xero. In future versions hooks/events 
 ### Rounding
 Due to how different systems calculate rounding if for whatever reason the order total is different to what Xero calculates, an additional line item to account for rounding is added in Xero. Please ensure you have this account code selected under settings.
 
-> More detailed documentation to coming soon.
+> More detailed documentation coming soon
 
 ## Feature requests 🙏
 As this plugin is still in active development now is a good time to suggest new features. Feel free to contact me via email or create a GitHub issue.
@@ -97,4 +97,4 @@ As this plugin is still in active development now is a good time to suggest new 
 - Admin features like element actions, widgets and different syncing methods
 
 ## Requirements
-This plugin requires Craft CMS 3.1.0 or later and Craft Commerce 2.0|3.0 or later.
+This plugin requires Craft CMS 3.1.0 or later and Craft Commerce 2.0 & 3.0 or later.
