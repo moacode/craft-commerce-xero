@@ -2,6 +2,12 @@
 
 # Xero plugin for Craft Commerce 2
 
+> **ALERT**: This plugin has been deprecated in favour of <a href="https://github.com/thejoshsmith/commerce-xero">Xero for Craft Commerce 2 & 3</a> that supports OAuth 2.0.
+>
+> This plugin is no longer maintained and is for those still using the deprecated OAuth1.0a method of connecting to Xero.
+>
+> All new issues and pull requests should be created on the new repository.
+
 ## Overview
 **NOTE: 👨‍💻This plugin is stable and fine to use in production however it's in active development so expect frequent updates while new features are added until v1.0.0.**
 
